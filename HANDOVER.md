@@ -187,3 +187,37 @@ map after `wc_overlay()`. Help lines to parse for the menu: `data/Uhelp` page 2
 (returns -1 = text now), called per map cell from `map_refresh()` in `port/wcurses.c` after
 `wc_mapcell()` (panes.c) coloured the cell; only cells showing the game's own char should get a
 tile (menus/overlays draw text over the map).
+
+### Stage 4 (tiles) — done 2026-09-26
+
+- **Set:** Amiga Larn tiles, larn.org / primeau (https://github.com/primeau/Larn `src/img`, MIT,
+  `port/amiga/LICENSE`), 8×16, copied from `~/Games/larn/port/amiga/` into `port/amiga/`. One set,
+  no fallback. Credit it on the Help page (stage 5/6).
+- **Id map:** `port/mktiles.py` (run from the repo root; `web/build.sh` runs it if `web/tiles.png` is
+  missing) → `web/tiles.png` (32 per row, 181 tiles) + `port/tilemap.h` (`mon_tile[66]`,
+  `obj_tile[99]`, `wall_tile[16]`, `PLAYER_TILE`). ULarn art: `m1u`, `m19u`, `m34u`, `m39v`,
+  `m57v`–`m65v`; objects `oN` with 15↔16, 80↔82, 93–98 → o95–o100; `OWALL` by neighbour bits
+  (wall, open/closed door count as wall) as Larn.
+- **Coverage (script, counts `src/data.c` `monster[]` and `src/itm.h` ids):** monsters 65/65,
+  objects 98/98 = **100%**; the script asserts every id has a tile file.
+- **Loader:** `tile_for()` in `port/panes.c` decides per map cell (the screen char must be the
+  game's own: `monstnamelist[mitem.mon]` / `objnamelist[item]`; unknown, blank and text over the
+  map stay text; a disguised mimic gets the tile of the monster it shows; hero = `@` at
+  `playerx/playery` → `player.png`, Larn's green block). JS (`web/ularn.js` `draw()`) only blits
+  `tiles.png`; `imageSmoothingEnabled = false` (nearest-neighbour), cell = tile height × half.
+- **Page:** `Tiles`/`Text` button (`btn-tiles`), choice in `localStorage` `ularn-tiles`.
+- **Fixed on the way (stage 3 regression):** `wc_kbhit()` masked `be_poll()`'s -1 to 255, so every
+  `~`/`<`/`>` walk stopped after one step. Now masks only real keys.
+- **Tested (browser, own tab, localhost):** town (shops, bank, home, entrance, hero), `>` walked into
+  level 1, `~` explore (walls, doors, gold, scroll, potion, book, dagger, ruby, down stairs, lemming,
+  hobgoblin), stairs to level 2 (gnome, up stairs, pit); canvas pixels at those cells are exact
+  palette colours (no smoothing), text mode gives the grey antialiased glyphs; toggle both ways.
+  No console errors. ASan: 20 × 3000 random keys incl. `~<>`: clean. IDBFS `/ularn` deleted.
+- **Open problems:** Ularn draws the object, not `@`, under the hero while an item/stairs prompt is
+  up (native); the Amiga player tile is a plain green block (Larn has the same); water/lava do not
+  exist in Ularn, so no text-only cells remain on the map.
+
+**Next: stage 5 (web page).** Open problems from stage 1 that stage 5 must handle: character name
+defaults to `web_user` → a proper name prompt (no `.Ularnopts`); `more()`/`retcont()` "press
+space/return" screens; death shows the scoreboard then `exit()` without a key wait; no Help page
+(`help.html`, credit the Amiga tiles there); inventory click not wired in `web/ularn.js` (keys only).

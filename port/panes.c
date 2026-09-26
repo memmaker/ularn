@@ -40,10 +40,37 @@ void nap(int ms) { if (ms > 0 && !nonap) wc_nap(ms); }
 void ularn_napms(int ms) { nap(ms); }
 
 /* ---- map ---- */
+/* Map cell -> Amiga Larn tile (port/tilemap.h, port/mktiles.py). The char on
+ * screen must be what the game draws there, so blindness, unknown cells,
+ * invisible monsters and text over the map stay text. */
+#include "tilemap.h"
+
+static int is_wall(int x, int y)
+{
+    int o;
+    if (x < 0 || y < 0 || x >= MAXX || y >= MAXY) return 0;
+    o = item[x][y];
+    return o == OWALL || o == OCLOSEDDOOR || o == OOPENDOOR;
+}
+
 int tile_for(int y, int x, chtype ch)
 {
-    (void)y; (void)x; (void)ch;
-    return -1; /* stage 4: Amiga Larn tiles */
+    int c = (int)(ch & A_CHARTEXT), m, o;
+    if (x >= MAXX || y >= MAXY || c <= ' ') return -1;
+    if (x == playerx && y == playery && c == '@') return PLAYER_TILE;
+    if (!know[x][y]) return -1;
+    if ((m = mitem[x][y].mon) > 0 && m < (int)(sizeof mon_tile / sizeof mon_tile[0])) {
+        if (c == monstnamelist[m]) return mon_tile[m];
+        if (m == MIMIC) /* disguised: the tile of the monster it looks like */
+            for (o = 1; o < (int)(sizeof mon_tile / sizeof mon_tile[0]); o++)
+                if (c == monstnamelist[o]) return mon_tile[o];
+    }
+    o = item[x][y];
+    if (o < 0 || o >= (int)(sizeof obj_tile / sizeof obj_tile[0]) || c != objnamelist[o]) return -1;
+    if (obj_tile[o] == -2)
+        return wall_tile[(is_wall(x, y - 1) ? 1 : 0) | (is_wall(x + 1, y) ? 2 : 0) | (is_wall(x, y + 1) ? 4 : 0) |
+                         (is_wall(x - 1, y) ? 8 : 0)];
+    return obj_tile[o];
 }
 
 /* ---- Status pane ---- */

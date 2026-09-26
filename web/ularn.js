@@ -11,7 +11,7 @@
 	var DIR = '/ularn';                             /* IDBFS mount: save, scores, layout; HOME, LIBDIR and cwd */
 	var DATA = '/ularn-data', DATA_FILES = ['Umaps', 'Ufortune', 'Uhelp'];
 	var SAVE = DIR + '/Ularn.sav', LAYOUT_FILE = DIR + '/web-layout.json';
-	var TW = 8, TH = 16;                              /* stage 4: Amiga Larn tiles in tiles.png, 32 per row */
+	var TW = 8, TH = 16;                              /* Amiga Larn tiles in tiles.png, 32 per row */
 	var MAP_COLS = 67, MAP_ROWS = 17, SIDE_COLS = 42;
 	/* curses colours 0-7, then bold (same as port/be_x11.c) */
 	var PAL = ['#000', '#cd3131', '#0dbc79', '#e5e510', '#4c7eff', '#bc3fbc', '#11a8cd', '#d7d7d7',
@@ -30,7 +30,9 @@
 
 	var panes = [];            /* {cv, ctx, cols, rows, cw, ch, pad, buf} */
 	var events = [];
-	var tiles = null, tilesReady = false;             /* text mode until stage 4 */
+	var tiles = new Image(), tilesReady = false;      /* C picks the tile (tile_for), JS only blits */
+	var useTiles = true;                              /* Tiles / Text button, kept in localStorage */
+	try { useTiles = localStorage.getItem('ularn-tiles') !== 'text'; } catch (e) { }
 	var running = false, saveReq = false;
 	var cur = { p: -1, y: 0, x: 0 };
 	var dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
@@ -93,7 +95,7 @@
 		var fg = PAL[col], inv = !!(ch & 0x1000);
 		c.fillStyle = inv ? fg : BG;
 		c.fillRect(px, py, T.cw, T.ch);
-		if (t >= 0 && tilesReady) {
+		if (t >= 0 && tilesReady && useTiles) {
 			c.drawImage(tiles, (t % 32) * TW, ((t / 32) | 0) * TH, TW, TH, px, py, T.cw, T.ch);
 			return;
 		}
@@ -408,6 +410,16 @@
 		if (!h.hidden) $('help-body').focus();
 	}
 
+	function setTiles(on) {
+		useTiles = on;
+		try { localStorage.setItem('ularn-tiles', on ? 'tiles' : 'text'); } catch (e) { }
+		$('btn-tiles').textContent = on ? 'Tiles' : 'Text';
+		if (panes[P_MAP]) shape(P_MAP);
+	}
+	tiles.onload = function () { tilesReady = true; if (panes[P_MAP]) shape(P_MAP); };
+	tiles.onerror = function () { status('Could not load the tile set; using text.', true); };
+	tiles.src = 'tiles.png';
+
 	/* ---------- startup ---------- */
 	window.Module = {
 		ln: ln,
@@ -471,6 +483,8 @@
 		$('help-close').onclick = toggleHelp;
 		$('btn-zoom-in').onclick = function () { zoomMap(1); };
 		$('btn-zoom-out').onclick = function () { zoomMap(-1); };
+		$('btn-tiles').onclick = function () { setTiles(!useTiles); };
+		setTiles(useTiles);
 		$('btn-restart').onclick = function () { location.reload(); };
 		document.querySelectorAll('button').forEach(function (b) {
 			b.addEventListener('mousedown', function (e) { e.preventDefault(); });

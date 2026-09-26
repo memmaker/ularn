@@ -5,7 +5,7 @@
  * buffer to wc_write(), which draws one 80x24 screen: map (rows 0-16,
  * cols 0-66), effects column (cols 69-79), status lines (17-18) and a
  * five-line scrolling message area (19-23, new lines at 23). Panes:
- *   Map        the map area (tile_for; text until stage 4)
+ *   Map        the map area, tiled (tile_for)
  *   Status     built from the game's data (wc_status)
  *   Messages   history + the live row 23
  *   Inventory  built from the pack (wc_inv)
@@ -396,9 +396,9 @@ int wc_kbhit(void)
     lflush();
     wrefresh(initscr());
     if (!queue[0]) {
-        int k = be_poll() & 0xff;
+        int k = be_poll(); /* -1 = no key (masking it first made 255: every walk stopped after a step) */
         if (k > 0) {
-            char s[2] = { (char)k, 0 };
+            char s[2] = { (char)(k & 0xff), 0 };
             wc_push(s);
         }
     }

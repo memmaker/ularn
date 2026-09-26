@@ -7,6 +7,7 @@ OUT=web/dist
 GAME="action bill create data diag display fortune player help io main monster moreobj
 	movem object regen savelev scores show signal sphere store tok"   # src/Makefile.in minus tty, nap
 rm -rf "$OUT" web/stage && mkdir -p "$OUT" web/stage
+[ -f web/tiles.png ] || python3 port/mktiles.py
 cp data/Umaps data/Ufortune data/Uhelp web/stage/
 # -DULARN_PORT: the terminal is port/wcurses.c; LIBDIR and HOME are the IDBFS mount
 emcc -O2 -std=gnu89 -fcommon -DULARN_PORT -DLIBDIR='"/ularn"' -Iport -w \
@@ -19,5 +20,5 @@ emcc -O2 -std=gnu89 -fcommon -DULARN_PORT -DLIBDIR='"/ularn"' -Iport -w \
 	-sFORCE_FILESYSTEM -lidbfs.js -sENVIRONMENT=web \
 	--preload-file web/stage@/ularn-data
 rm -rf web/stage
-cp web/index.html "$HOME/Games/rvip-tools/web/rvip-wm.js" web/ularn.js "$OUT/"
+cp web/index.html "$HOME/Games/rvip-tools/web/rvip-wm.js" web/ularn.js web/tiles.png "$OUT/"
 ls -la "$OUT"
