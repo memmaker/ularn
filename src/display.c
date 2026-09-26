@@ -183,6 +183,16 @@ static struct bot_side_def {
 	WTW,		"Wall-Walk"
 };
 
+#ifdef ULARN_PORT
+/* the effect names for the Status pane: "" when off, NULL at the end */
+const char *bot_effect(int i)
+{
+	if (i >= (int)(sizeof bot_data / sizeof bot_data[0]))
+		return NULL;
+	return c[bot_data[i].typ] ? bot_data[i].string : "";
+}
+#endif
+
 void botside()
 {
 	int i,idx;
@@ -374,6 +384,9 @@ void drawscreen()
 	d_xmax = MAXX;
 	d_ymin = 0;
 	d_ymax = MAXY;
+#ifdef ULARN_PORT
+	wc_dungeon();	/* the map is on screen again */
+#endif
 }
 
 /*

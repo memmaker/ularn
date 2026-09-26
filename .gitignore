@@ -1,0 +1,6 @@
+# RVIP port build output
+port/obj/
+port/ularn-test
+web/dist/
+web/stage/
+.DS_Store

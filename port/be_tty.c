@@ -1,0 +1,24 @@
+/* Native test frontend (ASan runs): keys come from stdin, panes are not
+ * drawn (set ULARN_DUMP=<file> to get them as text on every refresh).
+ * End of input ends the game like a hang-up. */
+#include <stdio.h>
+#include <stdlib.h>
+#include "curses.h"
+
+void be_init(int p, int cols, int rows) { (void)p; (void)cols; (void)rows; }
+void be_put(int p, int y, int x, chtype ch, int t) { (void)p; (void)y; (void)x; (void)ch; (void)t; }
+void be_cursor(int p, int y, int x) { (void)p; (void)y; (void)x; }
+void be_prompt(const char *s) { (void)s; }
+void be_popup(int r, int c) { (void)r; (void)c; }
+void be_flush(void) {}
+void be_invfg(int y, const char *c) { (void)y; (void)c; }
+void be_sleep(int ms) { (void)ms; }
+void be_end(int saved) { fprintf(stderr, "[be_end saved=%d]\n", saved); }
+
+int be_getkey(int at_cmd)
+{
+    int k = getchar();
+    (void)at_cmd;
+    if (k == EOF) { fprintf(stderr, "[end of keys]\n"); exit(0); }
+    return k;
+}

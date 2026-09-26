@@ -1,0 +1,170 @@
+/* Ularn port glue: the Status and Inventory panes built from the game's
+ * own data, the map tile hook, and what replaces tty.c / nap.c / termcap
+ * (the shim is the terminal). */
+#include <stdio.h>
+#include <string.h>
+#include "../src/header.h"
+#include "../src/player.h"
+#include "../src/itm.h"
+#include "../src/extern.h"
+#include "curses.h"
+
+const char *bot_effect(int i); /* display.c */
+
+/* ---- terminal: nothing to set up ---- */
+short ospeed;
+int tgetent(char *b, const char *n) { (void)b; (void)n; return 1; }
+int tgetflag(char *id) { (void)id; return 1; }
+char *tgetstr(char *id, char **a) { (void)id; (void)a; return "-"; }
+char *tgoto(const char *cm, int x, int y) { (void)cm; (void)x; (void)y; return ""; }
+int tputs(const char *s, int n, int (*f)(int)) { (void)s; (void)n; (void)f; return 0; }
+int setctty(void) { return 0; }
+int gettty(void) { return 0; }
+int settty(void) { return 0; }
+int setuptty(void) { return 0; }
+int scbr(void) { return 0; }
+int sncbr(void) { return 0; }
+int setupvt100(void) { clear(); setscroll(); return 0; }
+int wc_saved;
+int clearvt100(void)
+{
+    resetscroll();
+    lflush();
+    be_end(wc_saved);
+    return 0;
+}
+extern int nonap;
+int nonap = 0;
+void nap(int ms) { if (ms > 0 && !nonap) wc_nap(ms); }
+void ularn_napms(int ms) { nap(ms); }
+
+/* ---- map ---- */
+int tile_for(int y, int x, chtype ch)
+{
+    (void)y; (void)x; (void)ch;
+    return -1; /* stage 4: Amiga Larn tiles */
+}
+
+/* ---- Status pane ---- */
+static int ln;
+
+static const char *trim(const char *s)
+{
+    while (*s == ' ') s++;
+    return s;
+}
+
+static void line(WINDOW *w, chtype attr, const char *s)
+{
+    if (ln >= w->maxy) return;
+    wmove(w, ln++, 0);
+    w->attr = attr;
+    while (*s && w->curx < w->maxx - 1) waddch(w, (unsigned char)*s++);
+    w->attr = 0;
+    wclrtoeol(w);
+}
+
+void wc_status(WINDOW *w)
+{
+    char b[128];
+    const char *e;
+    int i, x = 0;
+    ln = 0;
+    snprintf(b, sizeof b, "%s the %s", logname, char_class);
+    line(w, A_BOLD, b);
+    snprintf(b, sizeof b, "Level %ld %s", c[LEVEL], c[LEVEL] > 0 ? trim(class[c[LEVEL] - 1]) : "");
+    line(w, 0, b);
+    snprintf(b, sizeof b, "Exp %ld", c[EXPERIENCE]);
+    line(w, 0, b);
+    snprintf(b, sizeof b, "HP %ld(%ld)   Spells %ld(%ld)", c[HP], c[HPMAX], c[SPELLS], c[SPELLMAX]);
+    line(w, c[HP] * 4 < c[HPMAX] ? COLOR_PAIR(COLOR_RED) | A_BOLD : 0, b);
+    snprintf(b, sizeof b, "AC %ld   WC %ld", c[AC], c[WCLASS]);
+    line(w, 0, b);
+    snprintf(b, sizeof b, "STR %ld  INT %ld  WIS %ld", c[STRENGTH] + c[STREXTRA], c[INTELLIGENCE], c[WISDOM]);
+    line(w, 0, b);
+    snprintf(b, sizeof b, "CON %ld  DEX %ld  CHA %ld", c[CONSTITUTION], c[DEXTERITY], c[CHARISMA]);
+    line(w, 0, b);
+    snprintf(b, sizeof b, "Gold %ld", c[GOLD]);
+    line(w, COLOR_PAIR(COLOR_YELLOW), b);
+    snprintf(b, sizeof b, "Dungeon: %s", c[TELEFLAG] ? "?" : trim(levelname[(int)level]));
+    line(w, 0, b);
+    snprintf(b, sizeof b, "Time: %ld mobuls left", (TIMELIMIT - gtime) / 100);
+    line(w, 0, b);
+    line(w, 0, "");
+    /* active effects (the column right of the map), as many per line as fit */
+    b[0] = 0;
+    for (i = 0; (e = bot_effect(i)); i++) {
+        if (!*e) continue;
+        if (x + (int)strlen(e) + 2 > w->maxx - 1) {
+            line(w, COLOR_PAIR(COLOR_CYAN), b);
+            b[0] = 0;
+            x = 0;
+        }
+        x += snprintf(b + x, sizeof b - x, "%s%s", x ? ", " : "", e);
+    }
+    if (x) line(w, COLOR_PAIR(COLOR_CYAN), b);
+    while (ln < w->maxy) line(w, 0, "");
+}
+
+/* ---- Inventory pane ---- */
+
+/* Same text as show3()/show1() (show.c) */
+static void item_name(char *b, size_t n, int i)
+{
+    int o = iven[i], a = ivenarg[i];
+    int k = snprintf(b, n, "%c) %s", 'a' + i, objectname[o]);
+    if (o == OPOTION && *potionname[a] && potionknown[a])
+        k += snprintf(b + k, n - k, " of%s", potionname[a]);
+    else if (o == OSCROLL && *scrollname[a] && scrollknown[a])
+        k += snprintf(b + k, n - k, " of%s", scrollname[a]);
+    else if (o != OPOTION && o != OSCROLL && o != OBOOK && o != OCHEST && o != OCOOKIE && o != OLARNEYE &&
+             o != OSPIRITSCARAB && o != OCUBEofUNDEAD && o != ODIAMOND && o != ORUBY && o != OEMERALD &&
+             o != OSAPPHIRE && o != OORB && o != OHANDofFEAR && o != OBRASSLAMP && o != OURN && o != OWWAND &&
+             o != OSPHTALISMAN && o != ONOTHEFT) {
+        if (a > 0 || wizard) k += snprintf(b + k, n - k, " +%d", a);
+        else if (a < 0) k += snprintf(b + k, n - k, " %d", a);
+    }
+    if (c[WIELD] == i) k += snprintf(b + k, n - k, " (in hand)");
+    if (c[WEAR] == i || c[SHIELD] == i) snprintf(b + k, n - k, " (worn)");
+}
+
+/* Angband's colour for an object id (RVIP W0: Ularn has no colours) */
+const char *wc_css(int o)
+{
+    switch (o) {
+    case OPOTION: return "#40a0ff";
+    case OSCROLL: return "#ffffff";
+    case OBOOK: return "#60e0e0";
+    case OAMULET: case OORBOFDRAGON: case OSPIRITSCARAB: case OCUBEofUNDEAD: case ONOTHEFT: case OSPHTALISMAN:
+    case OHANDofFEAR: case OORB: return "#ff9000";
+    case ORING: case OSTUDLEATHER: case OSPLINT: case OPLATEARMOR: case OSSPLATE: case OSHIELD: case OELVENCHAIN:
+    case OPLATE: case OCHAIN: case OLEATHER: return "#a07040";
+    case ORINGOFEXTRA: case OREGENRING: case OPROTRING: case OENERGYRING: case ODEXRING: case OSTRRING:
+    case OCLEVERRING: case ODAMRING: case OBELT: return "#ff4040";
+    case OHAMMER: case OSWORD: case O2SWORD: case OSWORDofSLASHING: case OSPEAR: case ODAGGER: case OBATTLEAXE:
+    case OLONGSWORD: case OFLAIL: case OLANCE: case OVORPAL: case OSLAYER: return "#b0b0b8";
+    case OWWAND: return "#40d040";
+    case OPSTAFF: case OCOOKIE: return "#d09050";
+    case OBRASSLAMP: case OURN: return "#ffff90";
+    case OSPEED: case OACID: case OHASH: case OSHROOMS: case OCOKE: return "#c080ff";
+    case OGOLDPILE: case OMAXGOLD: case OKGOLD: case ODGOLD: return "#ffe040";
+    case ODIAMOND: case ORUBY: case OEMERALD: case OSAPPHIRE: case OLARNEYE: return "#ff60ff";
+    }
+    return "";
+}
+
+void wc_inv(WINDOW *w)
+{
+    char b[160];
+    int i;
+    ln = 0;
+    line(w, A_BOLD, "Inventory");
+    for (i = 0; i < IVENSIZE; i++) {
+        if (!iven[i]) continue;
+        item_name(b, sizeof b, i);
+        line(w, c[WIELD] == i || c[WEAR] == i || c[SHIELD] == i ? A_BOLD : 0, b);
+        be_invfg(ln - 1, wc_css(iven[i]));
+    }
+    for (i = ln; i < w->maxy; i++) be_invfg(i, "");
+    while (ln < w->maxy) line(w, 0, "");
+}

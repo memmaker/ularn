@@ -142,8 +142,16 @@ char ramboflag=0;
 char do_fork=0;
 char sex=1;		/* default is man, 0=woman	*/
 char boldon=1;		/* 1=bold objects,  0=inverse objects	*/
+#ifdef ULARN_PORT
+char mail=0;		/* no mailer */
+#else
 char mail=1;		/* 1=mail letters after win game */
+#endif
+#ifdef ULARN_PORT
+char ckpflag=0;		/* checkpoints fork() */
+#else
 char ckpflag=1;		/* 1 if want checkpointing of game, 0 otherwise	*/
+#endif
 char cheat=0;		/* 1 if the player has fudged save file	*/
 char level=0;		/* cavelevel player is on = c[CAVELEVEL]*/
 char wizard=0;		/* the wizard mode flag	*/

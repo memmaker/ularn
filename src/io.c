@@ -49,7 +49,9 @@
 #include "extern.h"
 #include <time.h>
 
+#ifndef ULARN_PORT
 #include <term.h>
+#endif
 
 #define LINBUFSIZE 128		/* size of the lgetw() and lgetl() buffer */
 
@@ -67,7 +69,11 @@ getcharacter ()
 	char byt;
 	lflush();		/* be sure output buffer is flushed */
 /*        byt=getchar();		/* get character from terminal */
+#ifdef ULARN_PORT
+	byt=wc_getch(0);	/* the shim is the terminal */
+#else
 	byt=getc(stdin);
+#endif
 	return(byt);
 }
 
@@ -581,6 +587,9 @@ int x, y;
 {
 	int i;
 
+#ifdef ULARN_PORT
+	wc_overlay();	/* text over the map: a pop-up */
+#endif
 	cursor(1,1);
 	for (i=1; i<=y; i++)   {
 		*lpnt++ = CL_LINE;
@@ -650,6 +659,17 @@ void lflush ()
 	static int curx = 0;
 	static int cury = 0;
 
+#ifdef ULARN_PORT
+	/* the terminal is the shim; files get the bytes as they are */
+	if ((lpoint = lpnt - lpbuf) > 0) {
+		if (lfd == 1)
+			wc_write(lpbuf, lpoint);
+		else if (write(lfd, lpbuf, lpoint) != lpoint)
+			fprintf(stderr,"lflush: error writing to output file\n");
+	}
+	lpnt = lpbuf;
+	return;
+#endif
 	if ((lpoint = lpnt - lpbuf) > 0) {
 		if (enable_scroll <= -1) {
 			flush_buf();

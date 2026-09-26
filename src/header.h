@@ -42,6 +42,17 @@
 #  define SIGTYPE int
 #endif
 
+#ifdef ULARN_PORT
+/* RVIP port: the terminal is an in-memory screen (port/wcurses.c) */
+void wc_write(const char *, int);
+int wc_getch(int);
+void wc_dungeon(void);
+void wc_overlay(void);
+extern int wc_saved;
+void nap(int);
+#  define sleep(n) nap((n) * 1000)	/* shows the screen while waiting */
+#endif
+
 #ifndef MAXPATHLEN
 #  define MAXPATHLEN 1024
 #endif

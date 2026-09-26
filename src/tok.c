@@ -41,6 +41,11 @@ char yylex ()
 	lflush();
 	while (1) {
 		c[BYTESIN]++;
+#ifdef ULARN_PORT
+		/* no fork(): no checkpoint file, no shell escape */
+		if ((cc = wc_getch(1)) == EOF)
+			return(lastok = -1);
+#else
 		if (ckpflag)
 			/* check for periodic checkpointing */
 			if (c[BYTESIN] == 1
@@ -103,6 +108,7 @@ char yylex ()
 			}
 			return(lastok = 'L'-64);	/* redisplay screen */
 		}
+#endif
 		if ((cc <= '9') && (cc >= '0'))
 			yrepcount = yrepcount*10 + cc - '0';
 		else {	
@@ -118,7 +124,9 @@ char yylex ()
  */
 void flushall()
 {
-#ifdef TCFLSH
+#ifdef ULARN_PORT
+	/* typeahead stays (the page's key queue) */
+#elif defined(TCFLSH)
         ioctl(0, TCFLSH, 0);		/* standard ioctl to flush buffer */
 #else
 #  ifdef FIONREAD

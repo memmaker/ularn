@@ -683,6 +683,9 @@ invalid:
 		x = -x; 
 	}     /* if we are not to display the scores */
 
+#ifdef ULARN_PORT
+	wc_saved = (x == 257);	/* the frontend keeps the save */
+#endif
 	if ((x == 300) || (x == 257))   {
 		clearvt100();
 		printf("\n");
