@@ -311,3 +311,32 @@ credits (Ularn GPL-2, Amiga tiles primeau MIT, Dubtrain sounds, town music). Ind
 `~/Games/roguelikes-index/index.html` + `ularn.png` (see commit 17d4c04 DynaHack: card + png) and a
 tree `<li>` under Larn → "Larn 12.4" beside `Larn (RL_M 26.4)` (Ularn forks Larn 12). Then
 `web/deploy.sh` (needs pushed, clean tree), check og tags (step 5b), add the repo to RVIP.md W2.
+
+### Stage 7 (publish) — done 2026-09-26
+
+- **Live:** https://ruzzoli.de/roguelikes/ularn/ (deployed from pushed `3815bfd`; name prompt →
+  class list, Help guide opens; test IDBFS `/ularn` on ruzzoli.de deleted). Repo
+  https://github.com/memmaker/ularn (branch `master`), `README.md` = port notes + upstream
+  ef42184 + compare link; upstream `README` kept.
+- **Index** (`~/Games/roguelikes-index`, commit `3ec5693` "Add uLarn", deployed, curl diff empty):
+  card after Larn's with `ularn.png` (63 Amiga monster tiles, 24x5 at 2x, 384x160), tree `<li>`
+  "uLarn" under Larn → Larn 12.4, beside Larn (RL_M 26.4); og count 27 → 28.
+- **og tags:** `<!--og-->` block in `web/index.html` (written for uLarn only, as og.py's game loop
+  would); live `og:image` = `roguelikes/ularn.png`. Rerun `og.py` after the shrine exists (it
+  also adds the shrine page's tags).
+- **RVIP.md:** W2 row, case R example, stage 7 lesson (commit `b3a8762`, not pushed).
+- **Open problems:** tree lineage from the handover/README (Cordier 1992 from Larn 12), not
+  cross-checked on the web yet; stage 8 should verify it (RogueBasin).
+
+**Next: stage 8 (shrine).** Page `~/Games/roguelikes-index/shrine/ularn.html` + folder
+`shrine/ularn/` (manual, licence, changelog), styles only `shrine/shrine.css`. Templates:
+`shrine/dynahack.html` (structure) and `shrine/larn.html` (closest game, reuse facts on Larn's
+history). Sources here: manual = `data/Uhelp` (in-game help text) + upstream `README`;
+spoilers/strategy = `README.spoilers` (Phil Cordier's web site guide, predates 1.7.0); licence =
+`LICENSE` (GPL-2); changelog = `CHANGES.text` (+ `TODO`). Stats from `src/data.c` / `itm.h` /
+`header.h` (classes, monsters, objects, spells, 15+5 levels). Walkthrough: none known; check
+RogueBasin/web, else rules of thumb + README.spoilers. Cheats: wizard mode `=` (password read with
+`fgets(stdin)`, native only; not reachable in the web build). Then link it: card
+`<a class="play info" href="shrine/ularn.html">Info</a>`, tree ✦ after the uLarn link,
+`#bar h1` in `web/index.html` → `<a href="../shrine/ularn.html">` (+ `#bar h1 a` CSS); run
+`og.py` (or its shrine part), commit + push both repos, both `deploy.sh`, check the three links live.
