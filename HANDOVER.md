@@ -269,3 +269,45 @@ Sound/Music buttons in `~/Games/larn/web/larn.js`, off by default, state in `web
 'ularn.html'`), fetched by `toggleHelp()` in `web/ularn.js`. Docs: add an Ularn entry to
 `~/Desktop/Games/Roguelikes/Docs` (`build-docs.py` GAMES + `guides.py` GUIDES, with a Tips section);
 credit the Amiga tiles (primeau, MIT) there and on the Help page.
+
+### Stage 6 (docs + sound) — done 2026-09-26
+
+- **Docs** (`~/Desktop/Games/Roguelikes/Docs`, not a git repo): `build-docs.py` GAMES entry
+  `ularn.html` (after Larn's) with `parse_ularnhelp()` (39 keys from `data/Uhelp` page 2: after
+  "Help File for", tabs expanded, columns 0/27/56, `< >` split in two), Tips, "In the browser"
+  notes; `guides.py` GUIDES `'ularn.html'` ("How Ularn differs from Larn", "Your first steps",
+  "Staying alive") and SAVING `'ularn.html'`. `python3 build-docs.py` → 32 pages, `ularn.html` +
+  index card. Credits: Ularn 1.7.0 (Phil Cordier 1992; Josh Brandt, Josh Bressers et al.), GPL-2;
+  Amiga tiles larn.org/primeau MIT; Dubtrain sound pack.
+- **Help:** `web/make-help.py` (Larn's, `PAGE='ularn.html'`, pops "How Ularn differs from Larn",
+  keys-to-remember `~ Enter i < > g S`, About-this-version with ef42184 + compare link
+  `memmaker/ularn/compare/ef42184...master`). `web/build.sh` writes `dist/help.html` with it (stub
+  gone), so a Docs change needs a rebuild (or `python3 web/make-help.py > web/dist/help.html`).
+- **Sound:** `SOUND(e)` in `src/header.h` (`ULARN_PORT` → `be_sound()`, else no-op); `be_sound` in
+  `port/be_web.c` (→ `Module.ln.sound`), stub in `port/be_tty.c`, prototype in `port/curses.h`.
+  Events (Dubtrain names): `hit`, `miss`, `kill`, `mon_hit`, `cast_spell` (monster.c), `level`,
+  `pickup` (player.c), `money1`, `opendoor`, `shutdoor`, `stairs_up`, `stairs_down` (object.c),
+  `store5` (store.c, DND buy), `death` (scores.c, not for a win). `web/sounds.py` (Larn's) copies the
+  used Dubtrain samples to `dist/sound` + `sounds.json`; `pickup` has no Dubtrain event →
+  `plm_chest_latch.wav`. `web/ularn.js` picks a random file per event and plays it through the shared
+  `rvip-sound.js` (copied by build.sh). Music: Larn's town loop (`new_town.ogg` from heavenAndHell)
+  at level 0. Buttons Sound/Music in the top bar, off by default, stored in `web-layout.json`
+  `audio`; `Module.ln.sounds()` counts played sounds (testing).
+- **Tested (browser, own tab, localhost):** Help shows the uLarn guide (class list, Tips, credits);
+  fresh load Sound/Music off; Sound on → money1, miss, hit, kill, pickup counted and their wavs
+  fetched; reload keeps Sound on; Music on in town fetched the ogg. No console errors. ASan
+  (`make -C port asan`): 15 × 3000 random keys clean. IDBFS `/ularn` deleted.
+- **Open problems:** Music toggled by a script click is blocked by autoplay (a real click works);
+  shop buys other than the DND store (trading post, college, bank) have no sound; `pickup` also
+  sounds after a DND buy (take() prints "You pick up").
+
+**Next: stage 7 (publish).** Needs: the orchestrator creates `memmaker/ularn` first. README.md (top):
+upstream = https://github.com/ularn/ularn at ef42184 (Ularn 1.7.0, Josh Bressers et al.), compare
+link `…/compare/ef42184...master`; lineage Larn (Noah Morgan 1986) → Larn 12.x → Ularn (Phil
+Cordier 1992) → Josh Brandt 1.5 → Josh Bressers 1.7.0; the port = termcap output (`lflush()`) into
+the pane shim `port/wcurses.c` + `panes.c`, `rvip.c` (explore `~`, `<`/`>`, Enter menu, inventory),
+web build `web/build.sh`, native test `make -C port`; controls (keys above, click inventory rows);
+credits (Ularn GPL-2, Amiga tiles primeau MIT, Dubtrain sounds, town music). Index: card in
+`~/Games/roguelikes-index/index.html` + `ularn.png` (see commit 17d4c04 DynaHack: card + png) and a
+tree `<li>` under Larn → "Larn 12.4" beside `Larn (RL_M 26.4)` (Ularn forks Larn 12). Then
+`web/deploy.sh` (needs pushed, clean tree), check og tags (step 5b), add the repo to RVIP.md W2.

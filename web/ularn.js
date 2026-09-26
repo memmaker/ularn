@@ -143,7 +143,8 @@
 		var mapH = MAP_ROWS * tile + BORDER;
 		return { v: 1, tile: tile, auto: true, font: { msg: font, stat: font, inv: font, pop: font },
 			split: { bottom: (mapH + GUT / 2) / H, side: (W - sideW - GUT / 2) / W,
-				stat: (13 * Math.round(font * 1.3) + TITLE_H + BORDER + GUT / 2) / H } };
+				stat: (13 * Math.round(font * 1.3) + TITLE_H + BORDER + GUT / 2) / H },
+			audio: { sound: false, music: false } };
 	}
 
 	function loadLayout() {
@@ -160,9 +161,11 @@
 					if (s.font && s.font[k] >= FONT_MIN && s.font[k] <= FONT_MAX) d.font[k] = s.font[k];
 				});
 				if (s.wm) d.wm = s.wm;
+				if (s.audio) d.audio = { sound: s.audio.sound === true, music: s.audio.music === true };
 			}
 		} catch (err) { /* nothing saved yet */ }
 		L = d;
+		renderAudio();
 	}
 
 	var saveTimer = 0;
@@ -253,9 +256,41 @@
 	}
 
 	function resetLayout() {
-		L = defaultLayout(); L.wm = wm.state();
+		var a = L.audio;
+		L = defaultLayout(); L.audio = a; L.wm = wm.state();
 		for (var p = 0; p < panes.length; p++) if (panes[p]) shape(p);
 		applyDom(); saveLayout();
+	}
+
+	/* ---------- sound ---------- */
+	/* events come from the game (SOUND() -> port/be_web.c), named like the Dubtrain
+	 * Angband Sound Pack's (web/sounds.py copies the samples); rvip-sound.js plays them */
+	var audio = { cfg: {}, town: false, el: null, played: 0 };
+	fetch('sound/sounds.json').then(function (r) { return r.json(); }).then(function (c) { audio.cfg = c; }).catch(function () { });
+
+	function play(name) {
+		var files = L && L.audio.sound && audio.cfg[name];
+		if (!files || !files.length) return;
+		audio.played++;                          /* testing */
+		RVIPSound.play([files[Math.floor(Math.random() * files.length)].replace(/\.wav$/, '')], 0.6);
+	}
+	function updateMusic() {
+		var on = L && L.audio.music && audio.town && running;
+		if (on && !audio.el) {
+			audio.el = new Audio('music/new_town.ogg');
+			audio.el.loop = true; audio.el.volume = 0.4;
+		}
+		if (!audio.el) return;
+		if (on) audio.el.play().catch(function () { }); else audio.el.pause();
+	}
+	function toggleAudio(k) {
+		L.audio[k] = !L.audio[k];
+		renderAudio(); updateMusic(); saveLayout();
+	}
+	function renderAudio() {
+		var a = L ? L.audio : { sound: false, music: false };
+		$('btn-sound').textContent = 'Sound: ' + (a.sound ? 'on' : 'off');
+		$('btn-music').textContent = 'Music: ' + (a.music ? 'on' : 'off');
 	}
 
 	/* ---------- called by the game (port/be_web.c) ---------- */
@@ -286,6 +321,7 @@
 			if (ln.lastCur && panes[ln.lastCur.p]) draw(ln.lastCur.p, ln.lastCur.y, ln.lastCur.x);
 			drawCursor();
 			ln.lastCur = cur.p >= 0 ? { p: cur.p, y: cur.y, x: cur.x } : null;
+			if ((level === 0) !== audio.town) { audio.town = level === 0; updateMusic(); }
 		},
 		invfg: function (y, c) {   /* the game's colour for an inventory row */
 			var T = panes[P_INV];
@@ -297,6 +333,8 @@
 		key: function (atCmd) { RvipWM.prompt.wait(atCmd); return events.length ? events.shift() : -1; },
 		prompt: function (s) { RvipWM.prompt.text(s); },
 		requestSave: function () { saveReq = true; },   /* also for testing */
+		sound: function (name) { play(name); },
+		sounds: function () { return audio.played; },   /* testing */
 		hero: function () { return hero; },       /* testing: the player's map cell */
 		text: function (p) {                     /* testing: a pane as text lines */
 			var T = panes[p], out = [];
@@ -316,6 +354,7 @@
 		},
 		end: function (saved) {
 			running = false;
+			updateMusic();
 			/* died or quit: the game showed its last screen and waited for a key */
 			if (!saved) { syncFiles(function () { location.reload(); }); return; }
 			syncFiles(function () {
@@ -486,6 +525,9 @@
 		$('btn-zoom-in').onclick = function () { zoomMap(1); };
 		$('btn-zoom-out').onclick = function () { zoomMap(-1); };
 		$('btn-tiles').onclick = function () { setTiles(!useTiles); };
+		$('btn-sound').onclick = function () { toggleAudio('sound'); };
+		$('btn-music').onclick = function () { toggleAudio('music'); };
+		renderAudio();
 		setTiles(useTiles);
 		$('btn-restart').onclick = function () { location.reload(); };
 		/* a click on an Inventory row goes to the game as 0x200|row (its item menu, port/rvip.c) */

@@ -13,6 +13,7 @@ void be_popup(int r, int c) { (void)r; (void)c; }
 void be_flush(void) {}
 void be_invfg(int y, const char *c) { (void)y; (void)c; }
 void be_sleep(int ms) { (void)ms; }
+void be_sound(const char *e) { (void)e; }
 void be_end(int saved) { fprintf(stderr, "[be_end saved=%d]\n", saved); }
 
 int be_poll(void) { return -1; } /* scripted keys: explore runs until it stops */

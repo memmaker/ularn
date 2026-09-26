@@ -51,6 +51,10 @@ void wc_overlay(void);
 extern int wc_saved;
 void nap(int);
 #  define sleep(n) nap((n) * 1000)	/* shows the screen while waiting */
+void be_sound(const char *);
+#  define SOUND(e) be_sound(e)	/* web: plays a sound event (port/be_web.c) */
+#else
+#  define SOUND(e) ((void) 0)
 #endif
 
 #ifndef MAXPATHLEN

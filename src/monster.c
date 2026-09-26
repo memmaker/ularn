@@ -259,6 +259,7 @@ over:
 			return;
 		}			/* to escape casting a spell */
 		--c[SPELLS];
+		SOUND("cast_spell");
 		/* seq search for his spell, hash? */
 		lprc(d);
 		for (j = -1, i = 0; i < SPNUM; i++)
@@ -1217,12 +1218,14 @@ void hitmonster(int x, int y)
 	/* need at least random chance to hit */
 	if ((rnd(20) < tmp) || (rnd(71) < 5)) {
 		lprcat("\nYou hit");
+		SOUND("hit");
 		flag = 1;
 		damag = fullhit(1);
 		if (damag < 9999)
 			damag = rnd(damag) + 1;
 	} else {
 		lprcat("\nYou missed");
+		SOUND("miss");
 		flag = 0;
 	}
 	lprintf(" the %s.", lastmonst);
@@ -1338,6 +1341,7 @@ int x, y, amt;
 		int i;
 
 		lprintf("\nThe %s died!", lastmonst);
+		SOUND("kill");
 		raiseexperience((long) monster[monst].experience);
 		disappear(x, y);
 
@@ -1445,6 +1449,7 @@ void hitplayer (int x, int y)
 
 	if (((dam + bias) > c[AC]) || (rnd((int)((c[AC]>0)?c[AC]:1))==1)) {
 		lprintf("\n  The %s hit you.",lastmonst);	
+		SOUND("mon_hit");
 		tmp = 1;
 		if ((dam -= c[AC]) < 0) 
 			dam=0;

@@ -22,6 +22,7 @@ EM_JS(void, js_prompt, (const char *s), { Module.ln.prompt(UTF8ToString(s)); });
 EM_JS(int, js_want_save, (void), { return Module.ln.wantSave(); });
 EM_JS(void, js_end, (int saved), { Module.ln.end(saved); });
 EM_JS(void, js_invfg, (int y, const char *c), { Module.ln.invfg(y, UTF8ToString(c)); });
+EM_JS(void, js_sound, (const char *s), { Module.ln.sound(UTF8ToString(s)); });
 EM_JS(void, js_vis, (const char *s), { if (Module.ln.vis) Module.ln.vis(UTF8ToString(s)); });
 
 void be_init(int p, int cols, int rows) { js_init(p, cols, rows); }
@@ -30,6 +31,7 @@ void be_cursor(int p, int y, int x) { js_cursor(p, y, x); }
 void be_popup(int rows, int cols) { js_popup(rows, cols); }
 void be_prompt(const char *s) { js_prompt(s); }
 void be_sleep(int ms) { emscripten_sleep(ms); }
+void be_sound(const char *event) { js_sound(event); }
 
 void be_invfg(int y, const char *css)
 {

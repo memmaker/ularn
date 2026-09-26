@@ -336,6 +336,7 @@ over:
 			else {
 				forget();  
 				item[playerx][playery]=OOPENDOOR;
+				SOUND("opendoor");
 			}
 		}
 		break;
@@ -765,6 +766,7 @@ void ostairs(int dir)
 					/* not on V1 */
 				if (level>=2 && level!=DBOTTOM+1) {
 					newcavelevel(level-1);
+					SOUND("stairs_up");
 					for (x=0;x<MAXX;x++)
 					  for (y=0;y<MAXY;y++)
 						if (item[x][y] == OSTAIRSDOWN){
@@ -788,6 +790,7 @@ void ostairs(int dir)
 				if ((level!=0) && (level!=DBOTTOM) && 
 				    (level!=VBOTTOM)) {
 					newcavelevel(level+1);
+					SOUND("stairs_down");
 					for (x=0;x<MAXX;x++)
 					  for (y=0;y<MAXY;y++)
 						if (item[x][y] == OSTAIRSUP){
@@ -1507,6 +1510,7 @@ void ogold(int arg)
 	else if (arg==OKGOLD) i *= 1000;
 
 	lprintf("\nYou find %d gold piece%s.",i, i==1 ? "": "s");
+	SOUND("money1");
 	c[GOLD] += i;  
 	bottomgold();
 	item[playerx][playery] = know[playerx][playery] = 0;/*destroy gold*/
@@ -1634,6 +1638,7 @@ void closedoor()
 		return;
 	}
 	lprcat("\nThe door closes.");
+	SOUND("shutdoor");
 	forget();
 	item[playerx][playery]=OCLOSEDDOOR;
 	iarg[playerx][playery]=0;

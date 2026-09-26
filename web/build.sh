@@ -20,14 +20,11 @@ emcc -O2 -std=gnu89 -fcommon -DULARN_PORT -DLIBDIR='"/ularn"' -Iport -w \
 	-sFORCE_FILESYSTEM -lidbfs.js -sENVIRONMENT=web \
 	--preload-file web/stage@/ularn-data
 rm -rf web/stage
-cp web/index.html "$HOME/Games/rvip-tools/web/rvip-wm.js" web/ularn.js web/tiles.png "$OUT/"
-# the in-page guide; stage 6 replaces this stub with web/make-help.py (as Larn's)
-cat > "$OUT/help.html" <<'EOF2'
-<h2>Ularn</h2>
-<p>The full guide is coming. In the game: <kbd>?</kbd> shows Ularn's own help,
-<kbd>Enter</kbd> lists every command, <kbd>i</kbd> the inventory (or click a row in the
-Inventory window), <kbd>~</kbd> explores, <kbd>&lt;</kbd> <kbd>&gt;</kbd> walk to the stairs,
-<kbd>S</kbd> saves and ends the session. The game also saves itself in this browser.</p>
-<p>Tiles: the Amiga Larn set from larn.org (primeau, MIT).</p>
-EOF2
+cp web/index.html "$HOME/Games/rvip-tools/web/rvip-wm.js" "$HOME/Games/rvip-tools/web/rvip-sound.js" web/ularn.js web/tiles.png "$OUT/"
+# the in-page guide (from the desktop Docs, ~/Desktop/Games/Roguelikes/Docs)
+python3 web/make-help.py > "$OUT/help.html"
+# sound effects (events raised by SOUND() in the game) and the town music
+python3 web/sounds.py "$OUT/sound"
+mkdir -p "$OUT/music"
+cp ~/Projects/heavenAndHell/files/mods/heavenandhell/music/new_town.ogg "$OUT/music/"
 ls -la "$OUT"

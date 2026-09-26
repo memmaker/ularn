@@ -224,6 +224,7 @@ lprcat("comply with the law, we cannot serve you at this time.  So Sorry.\n");
 				if (itm[i].mem != 0)
 					itm[i].mem[itm[i].arg] = 1 ;
 				c[GOLD] -= itm[i].price*10L;
+				SOUND("store5");
 				itm[i].qty--;
 				take(itm[i].obj,itm[i].arg);
 				if (itm[i].qty==0)

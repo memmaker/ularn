@@ -696,6 +696,7 @@ invalid:
 		win = 1;  
 	else 
 		win = 0;
+	if (!win) SOUND("death");
 
 	c[GOLD] += c[BANKACCOUNT];   
 	c[BANKACCOUNT] = 0;

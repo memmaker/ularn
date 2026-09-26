@@ -68,6 +68,7 @@ void be_flush(void);
 int be_getkey(int at_cmd);               /* waits for a key */
 int be_poll(void);                       /* a key or -1, after a short wait */
 void be_sleep(int ms);
+void be_sound(const char *event);       /* web: play a sound event */
 void be_end(int saved);                  /* the game is over (or saved) */
 void be_invfg(int y, const char *css);   /* inventory row colour */
 int tile_for(int y, int x, chtype ch);   /* panes.c: -1 = draw as text */
