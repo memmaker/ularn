@@ -153,7 +153,7 @@ map after `wc_overlay()`. Help lines to parse for the menu: `data/Uhelp` page 2
 - **Enter menu:** parsed at first use from `data/Uhelp` page 2 (lines after "Help File for" up to
   the first blank; tabs expanded, columns 0/27/56, a column counts only after a blank so long
   entries don't split); listed column by column (moves, runs/info, actions); `< >` becomes two
-  entries. 44 commands incl. `~ < >`. Drawn into stdscr's map area (rows 0-16) after
+  entries. 39 commands incl. `~ < >`. Drawn into stdscr's map area (rows 0-16) after
   `wc_overlay()`, so the pane router shows a content-sized pop-up; `close_list()` =
   `draws(0,MAXX,0,MAXY)` + `wc_dungeon()`. Scrolls at 16 rows.
 - **Item actions run through the key queue:** `wc_push("qa")` = verb + slot letter, read by
