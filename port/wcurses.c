@@ -258,7 +258,7 @@ static void map_refresh(void)
     for (y = 0; y < MAP_H; y++)
         for (x = 0; x < MAP_W; x++) {
             int i = y * MAP_W + x;
-            chtype ch = at(stdscr, y, x);
+            chtype ch = wc_mapcell(y, x, at(stdscr, y, x));
             int t = tile_for(y, x, ch);
             if (shown[i] == ch && shown_tile[i] == t) continue;
             shown[i] = ch;
@@ -357,11 +357,49 @@ int wrefresh(WINDOW *w)
     return OK;
 }
 
+static char queue[64]; /* keys fed before the keyboard (rvip.c) */
+static int answer;     /* rvip.c: the reply to the next non-command prompt */
+
+void wc_push(const char *keys)
+{
+    size_t n = strlen(queue);
+    snprintf(queue + n, sizeof queue - n, "%s", keys);
+}
+
+void wc_answer(int k) { answer = k; }
+
 int wc_getch(int at_cmd)
 {
+    int k;
+    if (queue[0]) {
+        k = (unsigned char)queue[0];
+        memmove(queue, queue + 1, strlen(queue));
+        return k;
+    }
+    if (at_cmd) answer = 0;
+    else if (answer) {
+        k = answer;
+        answer = 0;
+        return k;
+    }
     lflush();
     wrefresh(initscr());
     return be_getkey(at_cmd);
+}
+
+/* auto-explore: show the step, then a key pressed meanwhile? (it stays queued) */
+int wc_kbhit(void)
+{
+    lflush();
+    wrefresh(initscr());
+    if (!queue[0]) {
+        int k = be_poll();
+        if (k > 0 && k < 256) {
+            char s[2] = { (char)k, 0 };
+            wc_push(s);
+        }
+    }
+    return queue[0] != 0;
 }
 
 void wc_nap(int ms)

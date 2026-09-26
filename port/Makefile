@@ -7,7 +7,7 @@ CFLAGS ?= -O1 -g
 override CFLAGS += -std=gnu89 -DULARN_PORT -DLIBDIR='"."' -I. -w -fcommon
 GAME = action bill create data diag display fortune player help io main monster moreobj \
 	movem object regen savelev scores show signal sphere store tok
-OBJ = $(GAME:%=obj/%.o) obj/wcurses.o obj/panes.o obj/be_tty.o
+OBJ = $(GAME:%=obj/%.o) obj/wcurses.o obj/panes.o obj/rvip.o obj/be_tty.o
 
 ularn-test: $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $(OBJ) -lz $(LDFLAGS)

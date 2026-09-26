@@ -6,6 +6,7 @@
 #include "../src/header.h"
 #include "../src/player.h"
 #include "../src/itm.h"
+#include "../src/monst.h"
 #include "../src/extern.h"
 #include "curses.h"
 
@@ -151,6 +152,42 @@ const char *wc_css(int o)
     case ODIAMOND: case ORUBY: case OEMERALD: case OSAPPHIRE: case OLARNEYE: return "#ff60ff";
     }
     return "";
+}
+
+/* Map colours (Ularn has none): monsters red, the rest by object class,
+ * items as their inventory colour. Only cells that show what the game put
+ * there are coloured, so text over the map stays plain. */
+chtype wc_mapcell(int y, int x, chtype ch)
+{
+    static const struct { const char *css; int col; } inv[] = {
+        { "#40a0ff", COLOR_BLUE }, { "#ffffff", COLOR_WHITE }, { "#60e0e0", COLOR_CYAN },
+        { "#ff9000", COLOR_YELLOW }, { "#a07040", COLOR_YELLOW }, { "#ff4040", COLOR_RED },
+        { "#b0b0b8", COLOR_WHITE }, { "#40d040", COLOR_GREEN }, { "#d09050", COLOR_YELLOW },
+        { "#ffff90", COLOR_YELLOW }, { "#c080ff", COLOR_MAGENTA }, { "#ffe040", COLOR_YELLOW },
+        { "#ff60ff", COLOR_MAGENTA },
+    };
+    int k = (int)(ch & A_CHARTEXT), m, o, col = 0, i;
+    const char *css;
+    if ((ch & 0x800) || y >= MAXY || x >= MAXX || k <= ' ') return ch;
+    if ((m = mitem[x][y].mon) && k == monstnamelist[m]) return ch | COLOR_PAIR(COLOR_RED);
+    o = item[x][y];
+    if (!know[x][y] || k != objnamelist[o]) return ch;
+    switch (o) {
+    case OSTAIRSUP: case OSTAIRSDOWN: case OENTRANCE: case OVOLDOWN: case OVOLUP:
+    case OELEVATORUP: case OELEVATORDOWN: return ch | COLOR_PAIR(COLOR_YELLOW) | A_BOLD;
+    case OOPENDOOR: case OCLOSEDDOOR: case OCHEST: col = COLOR_YELLOW; break;
+    case OALTAR: case OTHRONE: case ODEADTHRONE: case OFOUNTAIN: case ODEADFOUNTAIN: case OSTATUE:
+    case OMIRROR: case OTELEPORTER: col = COLOR_CYAN; break;
+    case ODNDSTORE: case OSCHOOL: case OBANK: case OBANK2: case OHOME: case OTRADEPOST: case OLRS:
+    case OPAD: col = COLOR_GREEN; break;
+    case OPIT: case OTRAPARROW: case ODARTRAP: case OTRAPDOOR: col = COLOR_RED; break;
+    case OANNIHILATION: col = COLOR_MAGENTA; break;
+    default:
+        css = wc_css(o);
+        for (i = 0; *css && i < (int)(sizeof inv / sizeof inv[0]); i++)
+            if (!strcmp(css, inv[i].css)) col = inv[i].col;
+    }
+    return col ? ch | COLOR_PAIR(col) : ch;
 }
 
 void wc_inv(WINDOW *w)

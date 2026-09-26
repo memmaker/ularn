@@ -77,6 +77,12 @@ int be_getkey(int at_cmd)
     }
 }
 
+int be_poll(void)
+{
+    emscripten_sleep(30); /* shows the step; the page's keys arrive */
+    return js_key(1);
+}
+
 void be_end(int saved)
 {
     if (!saved) remove(savefilename); /* died or quit: no character to come back */

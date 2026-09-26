@@ -18,8 +18,12 @@ typedef unsigned int chtype;
 #define A_STANDOUT 0x1000u
 #define A_BOLD 0x2000u
 #define COLOR_RED 1
+#define COLOR_GREEN 2
 #define COLOR_YELLOW 3
+#define COLOR_BLUE 4
+#define COLOR_MAGENTA 5
 #define COLOR_CYAN 6
+#define COLOR_WHITE 7
 
 typedef struct {
     int maxy, maxx, cury, curx;
@@ -43,7 +47,12 @@ int wc_getch(int at_cmd);   /* a key; at_cmd: the command prompt (yylex) */
 void wc_nap(int ms);        /* nap()/sleep(): show the screen, wait */
 void wc_dungeon(void);      /* the map was drawn: back from text screens */
 void wc_overlay(void);      /* text is about to be drawn over the map */
-extern int wc_saved;        /* died(): the game ends because it was saved */
+extern int wc_saved;
+void wc_push(const char *keys);  /* rvip.c: keys read before the keyboard */
+void wc_answer(int k);           /* rvip.c: reply to the next prompt (stairs, door) */
+int wc_kbhit(void);              /* rvip.c: a key is waiting */
+extern int wc_msgs;             /* messages so far */
+chtype wc_mapcell(int y, int x, chtype ch); /* panes.c: map colours */        /* died(): the game ends because it was saved */
 
 /* Frontend: panes. Text goes to text panes and a pop-up box sized to its
  * content (stage 4 tiles the map). */
@@ -55,6 +64,7 @@ void be_prompt(const char *s);           /* live message row (rvip-wm.js prompt 
 void be_popup(int rows, int cols);       /* 0: close */
 void be_flush(void);
 int be_getkey(int at_cmd);               /* waits for a key */
+int be_poll(void);                       /* a key or -1, after a short wait */
 void be_sleep(int ms);
 void be_end(int saved);                  /* the game is over (or saved) */
 void be_invfg(int y, const char *css);   /* inventory row colour */

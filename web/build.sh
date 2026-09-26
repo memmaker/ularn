@@ -10,7 +10,7 @@ rm -rf "$OUT" web/stage && mkdir -p "$OUT" web/stage
 cp data/Umaps data/Ufortune data/Uhelp web/stage/
 # -DULARN_PORT: the terminal is port/wcurses.c; LIBDIR and HOME are the IDBFS mount
 emcc -O2 -std=gnu89 -fcommon -DULARN_PORT -DLIBDIR='"/ularn"' -Iport -w \
-	$(for f in $GAME; do echo src/$f.c; done) port/wcurses.c port/panes.c port/be_web.c \
+	$(for f in $GAME; do echo src/$f.c; done) port/wcurses.c port/panes.c port/rvip.c port/be_web.c \
 	-o "$OUT/ularn-core.js" -sUSE_ZLIB=1 \
 	-sASYNCIFY -sASYNCIFY_STACK_SIZE=65536 -sSTACK_SIZE=1048576 \
 	-sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=32MB \

@@ -88,12 +88,57 @@ Larn). `mitem[x][y]` is a struct (`.mon`). Name defaults to the login (`web_user
 without a final key wait — check in stage 5; no Help page (`help.html`) yet;
 wizard/`-d` difficulty not exposed.
 
-**Next: stage 2 (explore + stairs).** Reuse Larn's `~/Games/larn/port/rvip.c`:
-`first_step()`/`auto_step()`/`start()`/`stop()`/`passable()`/`target()`/
-`monster_in_view()`, hooked from `parse()` via `rvip_command()`; its key queue
-`wc_push()` lives in Larn's `port/wcurses.c` (not ported yet — add to `wc_getch`).
-Use `diroffx/diroffy` from `src/display.c`, `know[][]`, `item[][]`, `mitem[][].mon`;
-stop on a new message (`wc_msgs` counter already in wcurses.c) or a key. `>`/`<`
-must **never auto-walk into level-skipping shortcuts** (volcanic shaft `OVOLDOWN`,
-elevators `OELEVATORDOWN/UP`, trapdoors): only when stood on (R-Larn lesson).
-Ularn stairs: `OSTAIRSDOWN`/`OSTAIRSUP` (13/5), dungeon entrance `OENTRANCE` (54).
+### Stage 2 (explore + stairs) — done 2026-09-26
+
+- **Keys:** `~` auto-explore; `<` / `>` walk to the nearest known stairs and take them
+  (Ularn has no stair commands of its own: stepping on stairs asks "(d) go down?").
+  In the help page (`data/Uhelp`, page 2; the `Ularn -r` line made room).
+- **Code:** `port/rvip.c` (ported from `~/Games/larn/port/rvip.c`): `rvip_auto()`,
+  `rvip_command()`, `first_step()` (BFS), `auto_step()`, `stairs_at()`, `passable()`,
+  `target()`, `monster_in_view()`, `loot()` (= anything `wc_css()` colours, + chest).
+- **Main-loop hook:** `parse()` in `src/main.c` (`#ifdef ULARN_PORT`):
+  `k = rvip_auto()` (next step while walking; a waiting key stops it), else
+  `k = rvip_command(yylex())`; 0 → `nomove=1; return`, -1 → turn used.
+- **Shim (`port/wcurses.c`):** key queue `wc_push()` read first by `wc_getch()`;
+  `wc_answer(k)` replies once to the next *non-command* prompt (`wc_getch(0)`) —
+  explore/stairs answer the door ("o"), stairs ("d"/"u"), entrance ("g") and level-1
+  exit ("i") prompts this way; cleared at every command prompt. `wc_kbhit()` flushes the
+  screen and polls `be_poll()` (web: `emscripten_sleep(30)` + `js_key(1)`; tty: -1).
+- **"Known grid" test:** `know[x][y]` (level 0 is all known, so town explore says
+  "Nothing left"); frontier = passable known cell with an unknown neighbour, not yet
+  stood on (`visited[level][x][y]`); items are targets until stood on.
+- **Stops:** new message (`wc_msgs`, except the expected door-open messages without HP
+  loss), level change, blind/confused, a monster letter on screen **within 5 cells**
+  (Ularn leaves sleeping monsters drawn after you walk away), a step that didn't move
+  (not after a door try: stuck doors are retried), a key.
+- **`<`/`>` never walk to shortcuts:** targets are only `OSTAIRSDOWN`, `OSTAIRSUP`, the
+  town's `OENTRANCE` (`>`) and level 1's exit cell (33,16) (`<`). Stood on a shaft
+  (`OVOLDOWN`/`OVOLUP`), elevator or the entrance, `<`/`>` answers its prompt via
+  `lookforobject()`. V1's only way up is the volcano shaft: `<` there says "no way up".
+- **Map colours (`wc_mapcell()` in `port/panes.c`, called from `map_refresh()`):**
+  monsters red, stairs/shafts/elevators bright yellow, doors/chests yellow, fountains/
+  altars/thrones/statues cyan, shops green, known traps red, items as their inventory
+  colour (`wc_css()` mapped to the 8 curses colours). Only cells showing the game's own
+  char are coloured, so text over the map stays white.
+- **Tested:** browser (own tab, localhost): explore on level 1 (gold, items, door
+  prompts, stops on monsters), `>` from town walks to the entrance and enters, `<` walks
+  to level 1's exit into town, `>` stood on the entrance; save → reload restores. Native
+  (`port/ularn-test`, keys piped, wizard teleport): `>` walked to `OSTAIRSDOWN` on
+  level 4 → level 5, `<` stood on the up stairs → level 4. ASan: 30 × 3000 random keys
+  incl. `~<>`: clean. IDBFS `/ularn` deleted afterwards.
+- **Open problems:** after taking stairs Ularn asks again on arrival ("(u) go up?") —
+  native behaviour, the player answers `s`; walking over items to stairs stops at their
+  prompt (press `>` again); Ularn's level 1 has breeding lemmings that stop explore a lot
+  (game design); explore stops on any gold pickup message (as Larn).
+
+**Next: stage 3 (Enter menu + inventory).** Keys arrive in `parse()` (`src/main.c`, one
+`switch(k)`; `yylex()` in `src/tok.c` handles repeat-count digits) through
+`rvip_command()` in `port/rvip.c` — add Enter (`'\n'`, 10) and `i` there as Larn does
+(`cmd_menu()`, `inventory_browse()` in `~/Games/larn/port/rvip.c`). Item actions: push
+the keys with `wc_push("qa")` etc. (read by `wc_getch()` before the keyboard, for command
+and prompt reads alike). Ularn verbs prompt through `getcharacter()` (io.c) and
+`whatitem()`-style code in `src/object.c`/`src/main.c`; floor items ask "(t) take it"
+when stepped on. Panes: Map, Status, Messages, Inventory (`wc_inv()` in `port/panes.c`,
+`item_name()` there matches show.c), pop-up (`P_POP`); list pop-ups can draw over the
+map after `wc_overlay()`. Help lines to parse for the menu: `data/Uhelp` page 2
+(three tab-separated columns).

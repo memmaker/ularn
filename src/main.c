@@ -288,13 +288,26 @@ noone:		    	fprintf(stderr,"Who *are* you?\n");
  *
  *	get and execute a command
  */
+#ifdef ULARN_PORT
+int rvip_auto(void), rvip_command(int);
+#endif
 void parse ()
 {
 	int i,j;
 	int k,flag;
 
 	while	(1) {
+#ifdef ULARN_PORT
+		/* RVIP (port/rvip.c): auto-explore and stair walking */
+		if ((k = rvip_auto()) == 0 && (k = rvip_command(yylex())) == 0) {
+			nomove = 1;
+			return;
+		}
+		if (k == -1)
+			return;	/* the turn was used */
+#else
 		k = yylex();
+#endif
 		/* get the token from the input and switch on it	*/
 		switch(k)	{
 			case 'A':	if (wizard)
