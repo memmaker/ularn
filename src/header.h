@@ -53,6 +53,7 @@ void nap(int);
 #  define sleep(n) nap((n) * 1000)	/* shows the screen while waiting */
 void be_sound(const char *);
 #  define SOUND(e) be_sound(e)	/* web: plays a sound event (port/be_web.c) */
+void be_beacon(const char *, const char *, const char *, int, int, int, int);	/* RVIP step 12 */
 #else
 #  define SOUND(e) ((void) 0)
 #endif

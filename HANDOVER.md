@@ -357,3 +357,26 @@ RogueBasin/web, else rules of thumb + README.spoilers. Cheats: wizard mode `=` (
   (it predates 12.4); card tag 1992 → 1987. Base version "Larn 12" kept (exact 12.x not confirmed).
 - **Wizard mode:** `=`, password compiled in (`data.c`), read via `fgets(stdin)`: not usable on the web.
 - **Open problems:** none.
+
+### Stage 9 (graveyard + leaderboard) — done 2026-09-26
+
+- **Hook:** `died()` in `src/scores.c` (`#ifdef ULARN_PORT`), right after the life-protection return
+  and the `x = -x` normalisation, before any `exit()`: every end path except S (`x == 257`) sends one
+  beacon. `be_beacon()` (prototype in `src/header.h` and `port/curses.h`): web = `js_beacon` EM_JS in
+  `port/be_web.c` → `RvipWM.report(q)` (fallback bare fetch, errors swallowed); native
+  `port/be_tty.c` prints `[beacon …]` to stderr.
+- **Fields sent:** `g=ularn`; `ev` = `win` (x 263, `ohome()` with the cure potion in time), `quit`
+  (x 300 = Q y, 256), else `death`; `name` = `logname` (from `.Ularnopts`, the stage-5 prompt);
+  `killer` = `monster[x].name` for x < 256 (Ularn stores names without articles), else the
+  `whydead[]` text (e.g. "fell into a pit to HELL"; the her/his variants use the "his" text); omitted
+  for quit/win; `depth` = `level` (0 town, 1-15 dungeon, 16-20 = V1-V5); `score` =
+  `c[GOLD] + c[BANKACCOUNT]` (what `newscore()` records); `turns` = `gtime`; `lvl` = `c[LEVEL]`.
+- **Fields missing:** none. Wizard runs are sent too (the game only keeps them off its own board).
+- **Killer art:** `roguelikes-index/killers/make.py` `ularn()`: 65 PNGs from `port/amiga/` (same
+  remaps as `port/mktiles.py`: `m1u m19u m34u m39v m57v`-`m65v`), 8×16 centred on 16×16, 2× nearest.
+- **Tested:** native (`port/ularn-test`, keys piped / driven): quit → `ev=quit`; wizard `@m60` + `s` →
+  `ev=death&killer=type IV demon lord`; wizard `@p21`, take it, walk into the town home, `g` →
+  `ohome()` → `died(263)` → `ev=win`. Browser (own tab, localhost, `window.fetch` patched): Q y →
+  `…ev=quit&name=Webtest&depth=0&score=0&turns=4&lvl=1&id=…&at=…`; beacon blocked (503) → URL in
+  `rvip-outbox`; unblocked, `RvipWM.flush()` → same URL sent, outbox `[]`. IDBFS `/ularn` deleted.
+- **Open problems:** browser death not run (native verified the same `died()` path).

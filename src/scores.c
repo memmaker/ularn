@@ -685,6 +685,10 @@ invalid:
 
 #ifdef ULARN_PORT
 	wc_saved = (x == 257);	/* the frontend keeps the save */
+	if (x != 257)	/* RVIP step 12: every finished run (death, win, quit) */
+		be_beacon(x == 263 ? "win" : (x == 256 || x == 300) ? "quit" : "death", logname,
+			x < 256 ? monster[x].name : (x == 256 || x == 263 || x >= 300) ? NULL : whydead[x - 256],
+			level, (int)(c[GOLD] + c[BANKACCOUNT]), (int)gtime, (int)c[LEVEL]);
 #endif
 	if ((x == 300) || (x == 257))   {
 		clearvt100();
