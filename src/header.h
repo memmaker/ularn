@@ -146,25 +146,25 @@
 #define cursors()	do { cursor(1,24); } while (0)
 
 /* create scroll #'s with probability of occurrence */
-#define newscroll() (scprob[rund(82)])
+#define newscroll() (scprob[rund(81)])
 
 /* return a potion # created with probability of occurrence */
-#define newpotion() (potprob[rund(42)])
+#define newpotion() (potprob[rund(41)])
 
 /* return the + points on created leather armor */
 #define newleather() (nlpts[rund(c[HARDGAME]?10:13)])
 
 /* return the + points on chain armor */
-#define newchain() (nch[rund(11)])
+#define newchain() (nch[rund(10)])
 
 /* return + points on plate armor */
-#define newplate() (nplt[rund(c[HARDGAME]?3:11)])
+#define newplate() (nplt[rund(c[HARDGAME]?3:10)])
 
 /* return + points on new daggers */
 #define newdagger() (ndgg[rund(13)])
 
 /* return + points on new swords */
-#define newsword() (nsw[rund(c[HARDGAME]?6:14)])
+#define newsword() (nsw[rund(c[HARDGAME]?6:13)])
 
 /* destroy object at present location */
 #define forget()                                              \

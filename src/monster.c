@@ -270,6 +270,11 @@ over:
 					i = SPNUM;
 				}
 		bottomline();
+		/* a wrong incantation costs a spell: stop at none left (was negative) */
+		if (j == -1 && c[SPELLS] <= 0) {
+			lprcat("  Nothing happens.");
+			return;
+		}
 	} while (j == -1);
 }
 

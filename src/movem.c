@@ -248,6 +248,11 @@ out:
 		yl++; 
 	else if (j>playery)
 		--yh;
+	/* a monster on the map edge (wall-walkers) must not look outside it */
+	if (xl < 0) xl = 0;
+	if (yl < 0) yl = 0;
+	if (xh > MAXX) xh = MAXX;
+	if (yh > MAXY) yh = MAXY;
 
 	for (k=0; k<9; k++)
 		w1[k] = 10000;

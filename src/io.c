@@ -47,6 +47,7 @@
  */
 #include "header.h"
 #include "extern.h"
+#include <time.h>
 
 #include <term.h>
 
@@ -81,7 +82,7 @@ newgame ()
 
 	for (p=c,pe=c+100; p<pe; *p++ =0)
 		;
-	time(&initialtime);
+	initialtime = (long) time((time_t *)0);	/* time_t may be wider than long */
 	srand((unsigned)initialtime);
 	lcreat((char*)0);	/* open buffering for output to terminal */
 }

@@ -147,9 +147,9 @@ char ckpflag=1;		/* 1 if want checkpointing of game, 0 otherwise	*/
 char cheat=0;		/* 1 if the player has fudged save file	*/
 char level=0;		/* cavelevel player is on = c[CAVELEVEL]*/
 char wizard=0;		/* the wizard mode flag	*/
-char hitflag=0;		/* flag for if player has been hit when running */
-char hit2flag=0;	/* flag for if player has been hit when running */
-char hit3flag=0;	/* flag for if player has been hit flush input*/
+int hitflag=0;		/* flag for if player has been hit when running */
+int hit2flag=0;	/* flag for if player has been hit when running */
+int hit3flag=0;	/* flag for if player has been hit flush input*/
 char playerx,playery;	/* the room on the present level of the player*/
 char lastpx,lastpy;	/* 0 --- MAXX-1  or  0 --- MAXY-1		*/
 char oldx,oldy;
