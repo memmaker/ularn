@@ -360,6 +360,7 @@ int wrefresh(WINDOW *w)
 static char queue[64]; /* keys fed before the keyboard (rvip.c) */
 static int answer;     /* rvip.c: the reply to the next non-command prompt */
 int wc_raw;            /* rvip.c menus: keep cursor keys (0x100|hjkl.) apart */
+int wc_click;          /* Inventory row clicked at the command prompt (0 = none) */
 
 void wc_push(const char *keys)
 {
@@ -387,6 +388,12 @@ int wc_getch(int at_cmd)
     lflush();
     wrefresh(initscr());
     k = be_getkey(at_cmd);
+    if (k & 0x200) {                 /* a click on Inventory row k & 0xff */
+        if (wc_raw) return k;        /* rvip.c's inventory list */
+        if (!at_cmd) return wc_getch(0); /* never an answer to a question */
+        wc_click = k & 0xff;
+        return 'i';                  /* rvip_command() opens that item's menu */
+    }
     return wc_raw ? k : k & 0xff; /* the game gets hjkl for cursor keys */
 }
 
@@ -397,7 +404,7 @@ int wc_kbhit(void)
     wrefresh(initscr());
     if (!queue[0]) {
         int k = be_poll(); /* -1 = no key (masking it first made 255: every walk stopped after a step) */
-        if (k > 0) {
+        if (k > 0 && !(k & 0x200)) { /* a click doesn't stop a walk */
             char s[2] = { (char)(k & 0xff), 0 };
             wc_push(s);
         }

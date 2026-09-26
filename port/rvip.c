@@ -287,11 +287,13 @@ static void close_list(void)
     wc_dungeon();
 }
 
+extern int wc_click;
+static int clicks; /* inventory_browse() takes Inventory clicks (0x200|row) */
 static int getkey(void)
 {
     int k;
     wc_raw = 1;
-    k = wc_getch(0);
+    do k = wc_getch(0); while ((k & 0x200) && !clicks);
     wc_raw = 0;
     return k;
 }
@@ -435,7 +437,13 @@ static int inventory_browse(void)
         }
         if (cur >= n) cur = n - 1;
         top = draw_list("Inventory: letter uses, Shift drops, Ctrl examines, Enter menu", rows, n, cur, top);
-        k = getkey();
+        if (wc_click) { k = 0x200 | wc_click; wc_click = 0; } /* clicked at the prompt */
+        else { clicks = 1; k = getkey(); clicks = 0; }
+        if (k & 0x200) { /* Inventory row r = the r-th item carried (panes.c wc_inv()) */
+            if ((k & 0xff) < 1 || (k & 0xff) > n) continue;
+            cur = (k & 0xff) - 1;
+            k = '\n';
+        }
         if (k == ESC || k == '0' || k == '.' || k == 'i' || k == LEFT) break;
         if ((c2 = move_cur(k, cur, n)) >= 0) { cur = c2; continue; }
         i = slot[cur];
@@ -541,4 +549,30 @@ int rvip_command(int k)
         return start((char)k);
     lookforobject(); /* the stairs' own prompt, answered */
     return -1;
+}
+
+/* New game: ask the character's name (main.c, before makeplayer()). The
+ * name goes into .Ularnopts in HOME (the IDBFS mount on the web), which
+ * readopts() reads, so the next new game offers it again. */
+void rvip_askname(void)
+{
+    char s[LOGNAMESIZE];
+    int n, k;
+    FILE *f;
+    strcpy(s, strcmp(logname, loginname) ? logname : "");
+    clear();
+    lprcat("\n\n  Welcome to Ularn!\n\n  What is your name? ");
+    for (;;) {
+        n = strlen(s);
+        cursor(22, 5); lprcat(s); cltoeoln();
+        k = getcharacter();
+        if (k == '\n' || k == '\r') { if (n) break; }
+        else if ((k == 8 || k == 127) && n) s[n - 1] = 0;
+        else if (k >= ' ' && k < 127 && k != '"' && n < 20) { s[n] = k; s[n + 1] = 0; }
+    }
+    strcpy(logname, s);
+    if ((f = fopen(optsfile, "w"))) {
+        fprintf(f, "name: \"%s\"\n", s);
+        fclose(f);
+    }
 }

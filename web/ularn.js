@@ -316,6 +316,8 @@
 		},
 		end: function (saved) {
 			running = false;
+			/* died or quit: the game showed its last screen and waited for a key */
+			if (!saved) { syncFiles(function () { location.reload(); }); return; }
 			syncFiles(function () {
 				$('overlay-msg').textContent = saved ? 'Your game has been saved. Play again to continue it.'
 					: 'The game is over. Play again for a new character.';
@@ -486,6 +488,13 @@
 		$('btn-tiles').onclick = function () { setTiles(!useTiles); };
 		setTiles(useTiles);
 		$('btn-restart').onclick = function () { location.reload(); };
+		/* a click on an Inventory row goes to the game as 0x200|row (its item menu, port/rvip.c) */
+		document.querySelector('#t-inv canvas').addEventListener('mousedown', function (e) {
+			var T = panes[P_INV];
+			if (!running || !T || !$('help').hidden) return;
+			var y = Math.floor((e.offsetY * T.h / this.clientHeight - T.pad) / T.ch);
+			if (y >= 1 && y < 256) { events.push(0x200 | y); e.preventDefault(); }
+		});
 		document.querySelectorAll('button').forEach(function (b) {
 			b.addEventListener('mousedown', function (e) { e.preventDefault(); });
 		});

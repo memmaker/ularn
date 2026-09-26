@@ -30,6 +30,11 @@ int wc_saved;
 int clearvt100(void)
 {
     resetscroll();
+    if (!wc_saved) { /* died or quit: a last look at the scoreboard, then a new game */
+        cursor(1, 24); cltoeoln();
+        lprcat("  --- press any key for a new game --- ");
+        getcharacter();
+    }
     lflush();
     be_end(wc_saved);
     return 0;

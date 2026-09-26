@@ -221,6 +221,9 @@ noone:		    	fprintf(stderr,"Who *are* you?\n");
 
 	/* create new game */
 	if (restorflag == 0) {
+#ifdef ULARN_PORT
+		{ void rvip_askname(void); rvip_askname(); }
+#endif
 		makeplayer();	/*	make the character that will play*/
 		newcavelevel(0);/*	make the dungeon */
 		predostuff = 1;	

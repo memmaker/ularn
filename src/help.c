@@ -77,11 +77,18 @@ void welcome ()
 void retcont ()
 {
 	cursor(1,24); 
+#ifdef ULARN_PORT
+	lprcat("Press ");	/* any key (the web port's pop-up waits for one) */
+	ularn_standout("any key");
+	lprcat(" to continue: ");
+	getcharacter();
+#else
 	lprcat("Press "); 
 	ularn_standout("return");
 	lprcat(" to continue: ");   
 	while (getcharacter() != '\n')
 		;
+#endif
 	setscroll();
 }
 

@@ -473,11 +473,18 @@ void more()
 {
 	char c;
 
+#ifdef ULARN_PORT
+	lprcat("\n  --- press ");	/* any key */
+	ularn_standout("any key");
+	lprcat(" to continue --- ");
+	getcharacter();
+#else
 	lprcat("\n  --- press ");
 	ularn_standout("space");
 	lprcat(" to continue --- ");
 	while ((c = getcharacter()) != ' ' && !isspace(c))
 		;
+#endif
 }
 
 /*

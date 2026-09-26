@@ -221,3 +221,51 @@ tile (menus/overlays draw text over the map).
 defaults to `web_user` → a proper name prompt (no `.Ularnopts`); `more()`/`retcont()` "press
 space/return" screens; death shows the scoreboard then `exit()` without a key wait; no Help page
 (`help.html`, credit the Amiga tiles there); inventory click not wired in `web/ularn.js` (keys only).
+
+### Stage 5 (web page) — done 2026-09-26
+
+- **Windows** (`web/index.html`, `web/ularn.js` on `rvip-wm.js`, copied by `build.sh`): Map, Messages
+  (history), Status, Inventory, Visible, plus the text pop-up (`#pop`, pane 4) over the map. Top bar:
+  title `ULARN` (stage 8 links it to the shrine), Help, Zoom −/+, Tiles/Text, Windows ▾ (reset,
+  one/multi-window), Export/Import save, New game. Colours, tiles and pane contents come from C (W0).
+- **Layout file:** IDBFS `/ularn/web-layout.json` (splits, tile size, fonts, `wm` state); survives
+  reload (tested: dragged split kept).
+- **Name:** `rvip_askname()` (`port/rvip.c`), called in `main()` (`src/main.c`, `#ifdef ULARN_PORT`)
+  before `makeplayer()` on a new game: "What is your name?" in the pop-up, prefilled with the last
+  name (Backspace edits, Enter takes it, max 20 chars). Written as `name: "<name>"` to
+  `.Ularnopts` in HOME (IDBFS `/ularn`), which the game's own `readopts()` reads. `web_user` is no
+  longer shown (it stays `loginname`, used only by the disabled mailer).
+- **Key waits:** `more()` (player.c) and `retcont()` (help.c) take any key under `ULARN_PORT`
+  ("press any key to continue"); the help pager and stores keep their own keys.
+- **Death / quit:** `clearvt100()` (`port/panes.c`) shows "--- press any key for a new game ---" on
+  row 24 of the last screen (the scoreboard after a death) when the game ends without S, then
+  `be_end(0)`; `ularn.js` `end()` syncs IDBFS and reloads the page → new game, name prompt with the
+  last name. S still shows the "saved, Play again" overlay. `died()`'s early `exit(0)` (x 256 or a
+  negative code) now calls `clearvt100()` first. No `-sEXIT_RUNTIME`.
+- **Inventory click:** mousedown on an Inventory row sends `0x200|row` (ularn.js); `wc_getch()`
+  (`port/wcurses.c`) turns it at the command prompt into `i` + `wc_click`, and `inventory_browse()`
+  opens that row's item menu (row r = r-th carried item, as `wc_inv()` lists them). Inside the list a
+  click moves the cursor and opens the menu; other prompts and walks ignore clicks.
+- **Help:** `build.sh` writes a stub `dist/help.html` (keys + Amiga tile credit); the page fetches
+  `help.html` on first Help click (`toggleHelp()` in ularn.js).
+- **deploy.sh:** `web/deploy.sh` → `ruzzoli.de/roguelikes/ularn/` with the roguelikes-index guard
+  (refuses a dirty tree or one not equal to its upstream). **Not deployed, no repo:** dry run printed
+  "commit + push first".
+- **Tested (browser, own tab, localhost):** name prompt → "Zorba the Klingon" in Status, `.Ularnopts`
+  written; welcome any key; inventory click at the prompt and inside the list opens the right item
+  menu; split drag saved and restored after reload; S → overlay → reload restores position; random
+  fighting died → page reloaded into a new game with the name offered, save gone; Q → final screen
+  → key → new game. Native: death on level 18 (wizard) → scoreboard → final screen. ASan: 30 × 3000
+  random keys incl. name, `Q`, prompts: clean. IDBFS `/ularn` deleted afterwards.
+- **Open problems:** after Q (no scoreboard) the final line sits over the old screen; the browser
+  scoreboard screen itself was only seen natively (the browser death was reached, the reload
+  followed); hard mode (`-d`) not exposed; no sound, no og tags (step 5b needs the index card).
+
+**Next: stage 6 (docs + sound).** Sound hook: messages go through `wc_write()` →
+`scroll_msgs()`/`hist()` in `port/wcurses.c`; better, add `SOUND("event")` calls in the game as Larn
+does (`~/Games/larn/larnfunc.h`, `port/be_web.c` `Module.ln.sound`, `web/sounds.py`, top-bar
+Sound/Music buttons in `~/Games/larn/web/larn.js`, off by default, state in `web-layout.json`
+`audio`). Help: replace the stub in `web/build.sh` with `web/make-help.py` (copy Larn's, `PAGE =
+'ularn.html'`), fetched by `toggleHelp()` in `web/ularn.js`. Docs: add an Ularn entry to
+`~/Desktop/Games/Roguelikes/Docs` (`build-docs.py` GAMES + `guides.py` GUIDES, with a Tips section);
+credit the Amiga tiles (primeau, MIT) there and on the Help page.

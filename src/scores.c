@@ -716,8 +716,12 @@ invalid:
 				scorerror = writeboard();
 		}
 	}
-	if ((x == 256) || (x == 257) || (f != 0))
+	if ((x == 256) || (x == 257) || (f != 0)) {
+#ifdef ULARN_PORT
+		clearvt100();	/* the frontend ends the game */
+#endif
 		exit(0);
+	}
 
 	if (scorerror == 0) 
 		showscores();  /* if we updated the scoreboard*/
