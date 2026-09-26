@@ -340,3 +340,20 @@ RogueBasin/web, else rules of thumb + README.spoilers. Cheats: wizard mode `=` (
 `<a class="play info" href="shrine/ularn.html">Info</a>`, tree ✦ after the uLarn link,
 `#bar h1` in `web/index.html` → `<a href="../shrine/ularn.html">` (+ `#bar h1 a` CSS); run
 `og.py` (or its shrine part), commit + push both repos, both `deploy.sh`, check the three links live.
+
+### Stage 8 (shrine) — done 2026-09-26
+
+- **Shrine:** https://ruzzoli.de/roguelikes/shrine/ularn.html (roguelikes-index `4145d2f`
+  "Add uLarn shrine", deployed, curl diff empty). Folder `shrine/ularn/`: `manual.html`
+  (`data/Uhelp` + upstream `README`, generated; `^[[7m` → bold), `spoilers.html`
+  (`README.spoilers`), `license.txt` (GPL-2), `changelog.txt` (`CHANGES.text` + `TODO`).
+  og block written by hand for the shrine only (og.py would also rewrite every game repo's
+  `web/index.html`). Linked: card Info, tree ✦, `#bar h1` in `web/index.html` (dist updated, deployed).
+- **Manual:** none separate upstream; the in-game help is the manual. **Walkthrough:** none found;
+  page links README.spoilers, primeau's ULARN_SPOILERS.md (larn.org), Larn Wiki strategies, RogueBasin.
+- **Lineage (checked):** Wikipedia, RogueBasin, Libregamewiki and `data/Uhelp`: written **1987** by
+  Phil Cordier at UC Santa Cruz (posted to comp.sources.games; README dated 6/12/92 is an improved
+  version). Tree fixed: year 1992 → 1987, and moved from under "Larn 12.4" to directly under Larn
+  (it predates 12.4); card tag 1992 → 1987. Base version "Larn 12" kept (exact 12.x not confirmed).
+- **Wizard mode:** `=`, password compiled in (`data.c`), read via `fgets(stdin)`: not usable on the web.
+- **Open problems:** none.
