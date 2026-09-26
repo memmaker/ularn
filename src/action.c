@@ -316,11 +316,19 @@ void quaff ()
 	}
 }
 
+#ifdef ULARN_PORT
+int rvip_whatitem(const char *);	/* port/rvip.c: cursor list */
+#endif
 int qwhatitem ()
 {
 	int j, i=0;
 	char tmp[IVENSIZE];
 
+#ifdef ULARN_PORT
+	if ((i = rvip_whatitem("quaff")) >= 0)
+		return i;
+	i = 0;
+#endif
 	cursors();
 	for (j=0; j<IVENSIZE; j++)
 		switch(iven[j]) {
@@ -350,6 +358,11 @@ int whatitem (char *str)
 	int wld=0, q=0, r=0, w=0, e=0, d=0;
 	char tmp[IVENSIZE];
 
+#ifdef ULARN_PORT
+	if ((i = rvip_whatitem(str)) >= 0)
+		return i;
+	i = 0;
+#endif
 	cursors();
 	if (!strcmp(str, "wield")) 
 		wld = 1;

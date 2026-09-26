@@ -6,6 +6,7 @@
  *   Enter    floating menu of every command (Uhelp page 2)
  *   i        inventory with a cursor and item menus; actions run as the
  *            keys the player would type (wc_push("qa")).
+ *   item prompts (whatitem(), qwhatitem()) show the fitting items with a cursor
  * Ularn has no stair commands: stepping on stairs asks "(d) go down?", and
  * wc_answer() replies to that prompt. */
 #include <stdio.h>
@@ -464,6 +465,45 @@ static int inventory_browse(void)
         wc_push(s); /* any other key is a normal command */
     }
     return 0;
+}
+
+/* Item prompts: the items that fit the verb with a cursor. Returns what
+ * whatitem() returns (a letter, '-', '.', '*' or ESC), or -1 when keys are
+ * queued (an item action answers the game's own prompt). */
+int rvip_whatitem(const char *verb)
+{
+    static char rows[IVENSIZE][64];
+    char title[96];
+    int slot[IVENSIZE], all[IVENSIZE], n = 0, i, k, c2, cur = 0, top = 0, key = ESC;
+    int wld = !strcmp(verb, "wield"), drop = !strcmp(verb, "drop");
+    if (wc_queued()) return -1;
+    n = item_rows(rows, all);
+    for (i = k = 0; i < n; i++) {
+        int o = iven[all[i]];
+        if (drop || (wld && is_weapon(o)) || (!strcmp(verb, "wear") && is_armor(o)) ||
+            (!strcmp(verb, "quaff") && o == OPOTION) || (!strcmp(verb, "eat") && o == OCOOKIE) ||
+            (!strcmp(verb, "read") && (o == OSCROLL || o == OBOOK))) {
+            if (k != i) memcpy(rows[k], rows[i], sizeof rows[0]);
+            slot[k++] = all[i];
+        }
+    }
+    n = k;
+    snprintf(title, sizeof title, n ? "%s which? (letter or Enter, %sEsc)" : "Nothing to %s. (%sEsc)",
+             verb, wld ? "- none, " : drop ? ". gold, " : "");
+    if (n) title[0] = (char)(title[0] - 'a' + 'A');
+    open_list();
+    for (;;) {
+        top = draw_list(title, rows, n, cur, top);
+        k = getkey();
+        if (n && (c2 = move_cur(k, cur, n)) >= 0) cur = c2;
+        else if ((k == '\r' || k == '\n' || k == PAD5 || k == RIGHT) && n) { key = 'a' + slot[cur]; break; }
+        else if (k == ESC || k == '0' || k == LEFT || k == ' ') break;
+        else if ((k >= 'a' && k <= 'z') || k == '*' || (k == '-' && wld) || (k == '.' && drop)) { key = k; break; }
+    }
+    close_list();
+    cursors();
+    if (key == ESC) lprcat("\nAborted.");
+    return key;
 }
 
 /* The key parse() runs next, 0 = ask the player (yylex()). A key pressed

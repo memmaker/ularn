@@ -50,6 +50,7 @@ void wc_overlay(void);      /* text is about to be drawn over the map */
 extern int wc_saved;
 void wc_push(const char *keys);  /* rvip.c: keys read before the keyboard */
 void wc_answer(int k);           /* rvip.c: reply to the next prompt (stairs, door) */
+int wc_queued(void);             /* rvip.c: queued keys wait (item actions) */
 int wc_kbhit(void);              /* rvip.c: a key is waiting */
 extern int wc_msgs;             /* messages so far */
 extern int wc_raw;              /* rvip.c: wc_getch() keeps 0x100|key for cursor keys */

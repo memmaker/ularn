@@ -170,9 +170,14 @@ map after `wc_overlay()`. Help lines to parse for the menu: `data/Uhelp` page 2
   take off + wear (Klingon), put away + wield dagger (Rogue, inventory reached via Enter menu →
   `i`), Ctrl examine, other key moves; arrows/Numpad8 still move. No console errors. ASan:
   30 × 3000 random keys incl. Enter/`i`/item keys: clean. IDBFS `/ularn` deleted.
-- **Open problems:** no mouse click on inventory rows (keys only); item prompts ("What do you
-  want to quaff [a]?") are still Ularn's letter prompts, no cursor list (Larn's
-  `rvip_whatitem()` not ported); Enter is not listed in `Uhelp`; after read-scroll of create
+- **Item prompts:** `rvip_whatitem(verb)` (`port/rvip.c`), called first in `whatitem()` and
+  `qwhatitem()` (`src/action.c`, `#ifdef ULARN_PORT`): list of the items that fit (drop: all),
+  cursor, letter or Enter picks, `-` none (wield), `.` gold (drop), `*` as before, Esc/Space
+  cancel ("Aborted."). Returns -1 while `wc_queued()` (keys pushed by an item action), so the
+  game's own prompt reads them without a list flash. Tested: `q`, Enter menu → `q`, `r` (cursor),
+  `w` with no weapon, `d` letter, Esc; inventory actions skip the list. ASan 30 × 3000 keys clean.
+- **Open problems:** no mouse click on inventory rows: `web/ularn.js` delivers no pane clicks
+  to C (keys only); Enter is not listed in `Uhelp`; after read-scroll of create
   monster the list reopened (monster not seen by `monster_in_view()` in that tick).
 
 **Next: stage 4 (tiles).** Decision from stage 1: the Amiga Larn set (larn.org / primeau, MIT,

@@ -368,6 +368,7 @@ void wc_push(const char *keys)
 }
 
 void wc_answer(int k) { answer = k; }
+int wc_queued(void) { return queue[0] != 0; }
 
 int wc_getch(int at_cmd)
 {
