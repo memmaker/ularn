@@ -22,9 +22,10 @@
 	/* tile height in px (cells are half as wide); a bigger map scrolls */
 	var TILE_STEPS = [16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 128, 160, 192];
 	var FONT_MIN = 8, FONT_MAX = 28;
-	/* arrows and the keypad send hjklyubn (Ularn's digits are repeat counts) */
-	var KEY = { ArrowDown: 106, ArrowUp: 107, ArrowLeft: 104, ArrowRight: 108,
-		Home: 121, PageUp: 117, End: 98, PageDown: 110 };
+	/* arrows and the keypad send 0x100|hjklyubn. (Ularn's digits are repeat
+	 * counts): the game reads hjkl, the RVIP menus see cursor keys */
+	var KEY = { ArrowDown: 362, ArrowUp: 363, ArrowLeft: 360, ArrowRight: 364,
+		Home: 377, PageUp: 373, End: 354, PageDown: 366 };
 	var PAD = 'bjnh.lyku';                          /* Numpad1..9 */
 
 	var panes = [];            /* {cv, ctx, cols, rows, cw, ch, pad, buf} */
@@ -329,7 +330,7 @@
 		}
 		if (!running || e.isComposing || e.metaKey) return;
 		var k = e.key, code = e.code || '', m = /^Numpad([1-9])$/.exec(code), c;
-		if (m) c = PAD.charCodeAt(+m[1] - 1);
+		if (m) c = 0x100 | PAD.charCodeAt(+m[1] - 1);
 		else if (code === 'NumpadEnter' || k === 'Enter') c = 10;   /* Ularn waits for '\n' */
 		else if (code === 'NumpadDecimal') c = 46;
 		else if (k === 'Escape') c = 27;

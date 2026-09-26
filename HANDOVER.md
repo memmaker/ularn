@@ -142,3 +142,43 @@ when stepped on. Panes: Map, Status, Messages, Inventory (`wc_inv()` in `port/pa
 `item_name()` there matches show.c), pop-up (`P_POP`); list pop-ups can draw over the
 map after `wc_overlay()`. Help lines to parse for the menu: `data/Uhelp` page 2
 (three tab-separated columns).
+
+### Stage 3 (Enter menu + inventory) — done 2026-09-26
+
+- **Code:** `port/rvip.c` (ported from `~/Games/larn/port/rvip.c`): `cmd_menu()`, `load_cmds()`,
+  `draw_list()`, `inventory_browse()`, `item_menu()`, `actions()`, `run_action()`. Hooked in
+  `rvip_command()` (Enter `'\n'`/`'\r'` → `cmd_menu()`, whose key runs as the command; `i` →
+  `inventory_browse()`) and `rvip_auto()` (reopens the inventory after an item action unless a
+  monster is within 5 cells). `item_name()` in `port/panes.c` is no longer static.
+- **Enter menu:** parsed at first use from `data/Uhelp` page 2 (lines after "Help File for" up to
+  the first blank; tabs expanded, columns 0/27/56, a column counts only after a blank so long
+  entries don't split); listed column by column (moves, runs/info, actions); `< >` becomes two
+  entries. 44 commands incl. `~ < >`. Drawn into stdscr's map area (rows 0-16) after
+  `wc_overlay()`, so the pane router shows a content-sized pop-up; `close_list()` =
+  `draws(0,MAXX,0,MAXY)` + `wc_dungeon()`. Scrolls at 16 rows.
+- **Item actions run through the key queue:** `wc_push("qa")` = verb + slot letter, read by
+  `yylex()` (command) and `getcharacter()` in io.c (`whatitem()`/`qwhatitem()` prompts, action.c).
+  Quaff `q`, read `r`, eat `e`, wield `w` (`w-` puts it away), wear `W`, take off `T` (no letter),
+  drop `d`; Examine prints the name. Classes as `whatitem()` sorts them. No floor offers in Ularn.
+  Keys in the list: letter = main action, Shift = drop, Ctrl = examine, Enter/→/Numpad5 = menu,
+  `+ - *`, Esc/←/0/. close, any other key runs as a command.
+- **Cursor keys:** `web/ularn.js` sends arrows/keypad as `0x100|hjklyubn.`; `wc_getch()` masks to
+  the plain letter for the game, the menus set `wc_raw` (`port/wcurses.c`) and see the cursor
+  codes, so `j`/`k` stay commands in the menu.
+- **Tested (browser, own tab, localhost):** Enter menu lists all commands; picked `d` by cursor
+  (drop prompt), `g` by letter (ran); inventory: quaff (menu), read (letter), drop (Shift),
+  take off + wear (Klingon), put away + wield dagger (Rogue, inventory reached via Enter menu →
+  `i`), Ctrl examine, other key moves; arrows/Numpad8 still move. No console errors. ASan:
+  30 × 3000 random keys incl. Enter/`i`/item keys: clean. IDBFS `/ularn` deleted.
+- **Open problems:** no mouse click on inventory rows (keys only); item prompts ("What do you
+  want to quaff [a]?") are still Ularn's letter prompts, no cursor list (Larn's
+  `rvip_whatitem()` not ported); Enter is not listed in `Uhelp`; after read-scroll of create
+  monster the list reopened (monster not seen by `monster_in_view()` in that tick).
+
+**Next: stage 4 (tiles).** Decision from stage 1: the Amiga Larn set (larn.org / primeau, MIT,
+8×16) already in `~/Games/larn/port/amiga/`, one set, no fallback: monsters `m0`–`m65` (+`m1u`,
+`m19u`, `m34u`, `m39v`, `m57v`–`m65v`), objects `oN` by id with remaps 15↔16, 80↔82, Ularn
+93–98 → o95–o100; walls `wN` by neighbour bits as Larn. Hook: `tile_for()` in `port/panes.c`
+(returns -1 = text now), called per map cell from `map_refresh()` in `port/wcurses.c` after
+`wc_mapcell()` (panes.c) coloured the cell; only cells showing the game's own char should get a
+tile (menus/overlays draw text over the map).

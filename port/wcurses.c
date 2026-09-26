@@ -359,6 +359,7 @@ int wrefresh(WINDOW *w)
 
 static char queue[64]; /* keys fed before the keyboard (rvip.c) */
 static int answer;     /* rvip.c: the reply to the next non-command prompt */
+int wc_raw;            /* rvip.c menus: keep cursor keys (0x100|hjkl.) apart */
 
 void wc_push(const char *keys)
 {
@@ -384,7 +385,8 @@ int wc_getch(int at_cmd)
     }
     lflush();
     wrefresh(initscr());
-    return be_getkey(at_cmd);
+    k = be_getkey(at_cmd);
+    return wc_raw ? k : k & 0xff; /* the game gets hjkl for cursor keys */
 }
 
 /* auto-explore: show the step, then a key pressed meanwhile? (it stays queued) */
@@ -393,8 +395,8 @@ int wc_kbhit(void)
     lflush();
     wrefresh(initscr());
     if (!queue[0]) {
-        int k = be_poll();
-        if (k > 0 && k < 256) {
+        int k = be_poll() & 0xff;
+        if (k > 0) {
             char s[2] = { (char)k, 0 };
             wc_push(s);
         }

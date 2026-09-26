@@ -52,6 +52,7 @@ void wc_push(const char *keys);  /* rvip.c: keys read before the keyboard */
 void wc_answer(int k);           /* rvip.c: reply to the next prompt (stairs, door) */
 int wc_kbhit(void);              /* rvip.c: a key is waiting */
 extern int wc_msgs;             /* messages so far */
+extern int wc_raw;              /* rvip.c: wc_getch() keeps 0x100|key for cursor keys */
 chtype wc_mapcell(int y, int x, chtype ch); /* panes.c: map colours */        /* died(): the game ends because it was saved */
 
 /* Frontend: panes. Text goes to text panes and a pop-up box sized to its

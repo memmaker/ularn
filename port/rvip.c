@@ -3,8 +3,12 @@
  *   ~        auto-explore: one step per turn over what the player knows
  *   < >      off the stairs: walk to the nearest known one, take it there;
  *            on stairs (or a shaft, elevator, the entrance): take it.
+ *   Enter    floating menu of every command (Uhelp page 2)
+ *   i        inventory with a cursor and item menus; actions run as the
+ *            keys the player would type (wc_push("qa")).
  * Ularn has no stair commands: stepping on stairs asks "(d) go down?", and
  * wc_answer() replies to that prompt. */
+#include <stdio.h>
 #include <string.h>
 #include "../src/header.h"
 #include "../src/player.h"
@@ -12,6 +16,10 @@
 #include "../src/monst.h"
 #include "../src/extern.h"
 #include "curses.h"
+
+void item_name(char *b, size_t n, int i); /* panes.c */
+static int reopen; /* 2: an item action is queued, 1: reopen the inventory now */
+static int monster_in_view(void);
 
 static char auto_mode;     /* '~' explore, '<' / '>' walk to stairs */
 static int auto_level = -1, auto_msgs, auto_x = -1, auto_y, auto_hp, door_step;
@@ -170,10 +178,302 @@ static int start(char mode)
     return auto_step();
 }
 
+/* ---------------- Enter menu and inventory (from Larn's rvip.c) ---------------- */
+
+#define ESC 27
+#define UP (0x100 | 'k') /* cursor keys (ularn.js): arrows, keypad */
+#define DOWN (0x100 | 'j')
+#define LEFT (0x100 | 'h')
+#define RIGHT (0x100 | 'l')
+#define PAD5 (0x100 | '.')
+#define PGUP (0x100 | 'u')
+#define PGDN (0x100 | 'n')
+#define LIST_ROWS 16 /* rows under the title in the map area (17 rows) */
+
+struct entry {
+    int key;
+    char text[48];
+};
+static struct entry cmds[64];
+static int ncmds;
+
+static void add_cmd(int k, const char *t)
+{
+    if (ncmds >= (int)(sizeof cmds / sizeof cmds[0])) return;
+    cmds[ncmds].key = k;
+    snprintf(cmds[ncmds++].text, sizeof cmds[0].text, "%s", t);
+}
+
+/* Uhelp page 2: the lines after its title up to the first blank one, three
+ * columns (0, 27, 56 after tab expansion) of "k  text". Listed column by
+ * column, the help's own grouping (moves, runs/info, actions). */
+static void load_cmds(void)
+{
+    static const int col[4] = { 0, 27, 56, 80 };
+    static char cell[3][20][48];
+    int cn[3] = { 0, 0, 0 }, on = 0, i, j;
+    char raw[256], line[256];
+    FILE *f = fopen(helpfile, "r");
+    if (!f) return;
+    while (fgets(raw, sizeof raw, f)) {
+        char *r;
+        int x = 0;
+        for (r = raw; *r && *r != '\n' && x < 250; r++)
+            if (*r == '\t') do line[x++] = ' '; while (x % 8);
+            else line[x++] = *r;
+        line[x] = 0;
+        if (!on) { on = strstr(line, "Help File for") != NULL; continue; }
+        if (!*line) { if (cn[0]) break; continue; }
+        for (i = 0; i < 3; i++) {
+            int a = col[i], b = col[i + 1];
+            if (a >= x || cn[i] >= 20 || (a && line[a - 1] != ' ')) continue; /* a long entry runs on */
+            if (b > x) b = x;
+            memcpy(cell[i][cn[i]], line + a, b - a);
+            cell[i][cn[i]][b - a] = 0;
+            for (j = b - a; j > 0 && cell[i][cn[i]][j - 1] == ' ';) cell[i][cn[i]][--j] = 0;
+            if (*cell[i][cn[i]]) cn[i]++;
+        }
+    }
+    fclose(f);
+    ncmds = 0;
+    for (i = 0; i < 3; i++)
+        for (j = 0; j < cn[i]; j++) {
+            char *e = cell[i][j], *t = e + 1;
+            if (!strncmp(e, "< >", 3)) {
+                add_cmd('<', "walk to the nearest known stairs up");
+                add_cmd('>', "walk to the nearest known stairs down");
+                continue;
+            }
+            if (*t != ' ') continue;
+            while (*t == ' ') t++;
+            add_cmd((unsigned char)*e, t);
+        }
+}
+
+/* Draws rows[] over the map (top left) under an optional title, row `cur`
+ * highlighted, scrolled so it shows. Returns the first row shown. */
+static int draw_list(const char *title, char rows[][64], int n, int cur, int top)
+{
+    int i, x, w = title ? (int)strlen(title) : 0, shown = n < LIST_ROWS ? n : LIST_ROWS, y = 0;
+    for (i = 0; i < n; i++)
+        if ((int)strlen(rows[i]) > w) w = (int)strlen(rows[i]);
+    if (cur < top) top = cur;
+    if (cur >= top + shown) top = cur - shown + 1;
+    for (i = 0; i < MAXY; i++) /* the map area only: draws() restores it */
+        for (wmove(stdscr, i, 0), x = 0; x < MAXX; x++) waddch(stdscr, ' ');
+    if (title) {
+        wmove(stdscr, y++, 0);
+        for (x = 0; title[x]; x++) waddch(stdscr, (unsigned char)title[x] | A_BOLD);
+    }
+    for (i = top; i < top + shown; i++) {
+        chtype a = i == cur ? A_STANDOUT : 0;
+        wmove(stdscr, y++, 0);
+        for (x = 0; x < w; x++) waddch(stdscr, (rows[i][x] && x < (int)strlen(rows[i]) ? (unsigned char)rows[i][x] : ' ') | a);
+    }
+    wmove(stdscr, (title ? 1 : 0) + cur - top, 0);
+    return top;
+}
+
+static void open_list(void)
+{
+    lflush();
+    wc_overlay();
+}
+
+static void close_list(void)
+{
+    draws(0, MAXX, 0, MAXY);
+    wc_dungeon();
+}
+
+static int getkey(void)
+{
+    int k;
+    wc_raw = 1;
+    k = wc_getch(0);
+    wc_raw = 0;
+    return k;
+}
+
+static int move_cur(int k, int cur, int n)
+{
+    if (k == UP) return (cur + n - 1) % n;
+    if (k == DOWN) return (cur + 1) % n;
+    if (k == PGUP) return cur > LIST_ROWS ? cur - LIST_ROWS : 0;
+    if (k == PGDN) return cur + LIST_ROWS < n ? cur + LIST_ROWS : n - 1;
+    return -1;
+}
+
+/* Enter: the command menu. Returns the chosen key or 0. */
+int cmd_menu(void)
+{
+    static char rows[64][64];
+    int i, cur = 0, top = 0, k, c2, res = 0;
+    if (!ncmds) load_cmds();
+    if (!ncmds) return 0;
+    for (i = 0; i < ncmds; i++) snprintf(rows[i], sizeof rows[i], " %c  %s ", cmds[i].key, cmds[i].text);
+    open_list();
+    for (;;) {
+        top = draw_list("Commands (key or cursor + Enter, Esc closes)", rows, ncmds, cur, top);
+        k = getkey();
+        if (k == ESC || k == '0' || k == LEFT) break;
+        if ((c2 = move_cur(k, cur, ncmds)) >= 0) { cur = c2; continue; }
+        if (k == '\n' || k == '\r' || k == PAD5 || k == RIGHT || k == ' ') { res = cmds[cur].key; break; }
+        for (i = 0; i < ncmds && cmds[i].key != k; i++) ;
+        if (i < ncmds) { res = k; break; }
+    }
+    close_list();
+    return res;
+}
+
+/* item classes as whatitem() (action.c) sorts them */
+static int is_weapon(int o)
+{
+    switch (o) {
+    case OSWORDofSLASHING: case OHAMMER: case OSWORD: case O2SWORD: case OSPEAR: case ODAGGER:
+    case OBATTLEAXE: case OLONGSWORD: case OFLAIL: case OSLAYER: case OLANCE: case OVORPAL:
+        return 1;
+    }
+    return 0;
+}
+
+static int is_armor(int o)
+{
+    switch (o) {
+    case OPLATE: case OCHAIN: case OLEATHER: case ORING: case OSTUDLEATHER: case OSPLINT:
+    case OPLATEARMOR: case OSSPLATE: case OSHIELD: case OELVENCHAIN:
+        return 1;
+    }
+    return 0;
+}
+
+struct action {
+    int key;
+    const char *name;
+};
+
+/* actions for inventory slot i, main one first */
+static int actions(int i, struct action *a)
+{
+    int o = iven[i], n = 0;
+    if (o == OPOTION) a[n++] = (struct action){ 'q', "Quaff" };
+    else if (o == OSCROLL || o == OBOOK) a[n++] = (struct action){ 'r', "Read" };
+    else if (o == OCOOKIE) a[n++] = (struct action){ 'e', "Eat" };
+    else if (is_weapon(o)) a[n++] = c[WIELD] == i ? (struct action){ 'w', "Put away (wield nothing)" } : (struct action){ 'w', "Wield" };
+    else if (is_armor(o)) a[n++] = c[WEAR] == i || c[SHIELD] == i ? (struct action){ 'T', "Take off" } : (struct action){ 'W', "Wear" };
+    a[n++] = (struct action){ 'd', "Drop" };
+    a[n++] = (struct action){ '*', "Examine" };
+    return n;
+}
+
+/* queue the keys the player would type: verb + slot letter ('-' puts
+ * the weapon away, T takes off without asking) */
+static void run_action(int key, int i)
+{
+    char k[3] = { (char)key, 0, 0 };
+    if (key == '*') {
+        char b[128];
+        item_name(b, sizeof b, i);
+        cursors();
+        lprintf("\n%s", b + 3);
+        return;
+    }
+    if (key == 'w' && c[WIELD] == i) k[1] = '-';
+    else if (key != 'T') k[1] = (char)('a' + i);
+    wc_push(k);
+}
+
+static int item_rows(char rows[][64], int *slot)
+{
+    int i, n = 0;
+    for (i = 0; i < IVENSIZE; i++)
+        if (iven[i]) {
+            item_name(rows[n], 60, i);
+            slot[n++] = i;
+        }
+    return n;
+}
+
+/* the action menu for slot i: the chosen key or 0 */
+static int item_menu(int i)
+{
+    struct action a[4];
+    char rows[4][64], title[64];
+    int n = actions(i, a), cur = 0, k, j, c2;
+    item_name(title, sizeof title, i);
+    for (j = 0; j < n; j++) snprintf(rows[j], sizeof rows[j], " %c  %s ", a[j].key, a[j].name);
+    for (;;) {
+        draw_list(title + 3, rows, n, cur, 0);
+        k = getkey();
+        if ((c2 = move_cur(k, cur, n)) >= 0) cur = c2;
+        else if (k == PAD5 || k == RIGHT || k == '\r' || k == '\n' || k == ' ') return a[cur].key;
+        else if (k == ESC || k == LEFT || k == '0' || k == '.') return 0;
+        else
+            for (j = 0; j < n; j++)
+                if (a[j].key == k) return k;
+    }
+}
+
+/* 'i': the inventory with a cursor. Letter = main action, Shift+letter
+ * drops, Ctrl+letter examines, Enter = menu. Any other key is a command. */
+static int inventory_browse(void)
+{
+    static char rows[IVENSIZE][64];
+    static int cur;
+    int slot[IVENSIZE], n, k, i, top = 0, key = 0, c2;
+    struct action a[4];
+    reopen = 0;
+    open_list();
+    for (;;) {
+        n = item_rows(rows, slot);
+        if (!n) {
+            close_list();
+            cursors();
+            lprcat("\nYou aren't carrying anything.");
+            return 0;
+        }
+        if (cur >= n) cur = n - 1;
+        top = draw_list("Inventory: letter uses, Shift drops, Ctrl examines, Enter menu", rows, n, cur, top);
+        k = getkey();
+        if (k == ESC || k == '0' || k == '.' || k == 'i' || k == LEFT) break;
+        if ((c2 = move_cur(k, cur, n)) >= 0) { cur = c2; continue; }
+        i = slot[cur];
+        key = 0;
+        if (k == '\r' || k == '\n' || k == PAD5 || k == RIGHT || k == ' ') key = item_menu(i);
+        else if (k == '+') key = (actions(i, a), a[0].key);
+        else if (k == '-') key = 'd';
+        else if (k == '*') key = '*';
+        else if ((k >= 'a' && k <= 'z') || (k >= 'A' && k <= 'Z') || (k >= 1 && k <= 26)) {
+            int letter = k >= 'a' ? k - 'a' : k >= 'A' ? k - 'A' : k - 1;
+            for (i = 0; i < n && slot[i] != letter; i++) ;
+            if (i == n) break; /* not an item: a normal command */
+            cur = i;
+            i = slot[cur];
+            key = k >= 'a' ? (actions(i, a), a[0].key) : k >= 'A' ? 'd' : '*';
+        } else
+            break;
+        if (!key) continue; /* menu closed: back to the list */
+        close_list();
+        run_action(key, i);
+        if (key != '*') reopen = 2; /* after the queued command */
+        return 0;
+    }
+    close_list();
+    if (k < 256 && k != ESC && k != '0' && k != '.' && k != 'i') {
+        char s[2] = { (char)k, 0 };
+        wc_push(s); /* any other key is a normal command */
+    }
+    return 0;
+}
+
 /* The key parse() runs next, 0 = ask the player (yylex()). A key pressed
  * while walking stops the walk and is read as a command. */
 int rvip_auto(void)
 {
+    if (reopen == 1) {
+        reopen = 0;
+        if (!monster_in_view()) inventory_browse();
+    }
     if (!auto_mode) return 0;
     bottomdo(); /* what yylex() shows before a command */
     showplayer();
@@ -187,6 +487,9 @@ int rvip_command(int k)
 {
     int o = item[(int)playerx][(int)playery];
     auto_mode = 0;
+    reopen = reopen == 2; /* the queued command itself keeps it */
+    if (k == '\n' || k == '\r') k = cmd_menu();
+    if (k == 'i') return inventory_browse();
     if (k == '~') return start('~');
     if (k != '<' && k != '>') return k;
     /* stood on: take it (shortcuts only this way) */

@@ -110,7 +110,7 @@ void wc_status(WINDOW *w)
 /* ---- Inventory pane ---- */
 
 /* Same text as show3()/show1() (show.c) */
-static void item_name(char *b, size_t n, int i)
+void item_name(char *b, size_t n, int i) /* also rvip.c */
 {
     int o = iven[i], a = ivenarg[i];
     int k = snprintf(b, n, "%c) %s", 'a' + i, objectname[o]);
