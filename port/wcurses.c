@@ -146,7 +146,9 @@ static void clrtobot(WINDOW *w)
 
 /* ---- message history ---- */
 
-/* scroll the history up and add stdscr's row (repeats: "line (xN)") */
+/* add stdscr's row to the history (repeats: "line (xN)"); it fills from
+ * the top (nhist rows in use, the live row below them), then scrolls */
+static int nhist;
 static void hist(int row)
 {
     WINDOW *p = pn[P_MSG];
@@ -160,14 +162,18 @@ static void hist(int row)
     r[x] = 0;
     if (!strcmp(r, prev)) {
         snprintf(sfx, sizeof sfx, " (x%d)", ++reps);
-        for (x = 0; sfx[x] && n + x < p->maxx; x++) set(p, HIST - 1, n + x, (unsigned char)sfx[x]);
+        for (x = 0; sfx[x] && n + x < p->maxx; x++) set(p, nhist - 1, n + x, (unsigned char)sfx[x]);
         return;
     }
     reps = 1;
     strcpy(prev, r);
-    for (y = 0; y < HIST - 1; y++)
-        for (x = 0; x < p->maxx; x++) set(p, y, x, at(p, y + 1, x));
-    for (x = 0; x < p->maxx; x++) set(p, HIST - 1, x, x < n ? at(stdscr, row, x) : ' ');
+    if (nhist == HIST) {
+        for (y = 0; y < HIST - 1; y++)
+            for (x = 0; x < p->maxx; x++) set(p, y, x, at(p, y + 1, x));
+        nhist--;
+    }
+    for (x = 0; x < p->maxx; x++) set(p, nhist, x, x < n ? at(stdscr, row, x) : ' ');
+    nhist++;
 }
 
 int wc_msgs; /* messages so far (explore will stop on a new one) */
@@ -269,10 +275,12 @@ static void map_refresh(void)
 
 static void msg_refresh(void)
 {
-    int x;
+    int x, y;
     char r[COLS + 1];
+    for (y = nhist + 1; y <= HIST; y++)
+        for (x = 0; x < COLS; x++) set(pn[P_MSG], y, x, ' ');
     for (x = 0; x < COLS; x++) {
-        set(pn[P_MSG], HIST, x, at(stdscr, LIVE, x));
+        set(pn[P_MSG], nhist, x, at(stdscr, LIVE, x));
         r[x] = (char)(at(stdscr, LIVE, x) & A_CHARTEXT);
     }
     r[x] = 0;
@@ -335,7 +343,7 @@ int wrefresh(WINDOW *w)
         if (mode == M_DUNGEON) map_refresh();
         wc_status(pn[P_STATUS]);
         wc_inv(pn[P_INV]);
-        if (cy == LIVE) be_cursor(P_MSG, HIST, cx);
+        if (cy == LIVE) be_cursor(P_MSG, nhist, cx);
         else if (mode == M_DUNGEON && cy < MAP_H && cx < MAP_W) be_cursor(P_MAP, cy, cx); /* the player */
     }
     untouch(stdscr);
