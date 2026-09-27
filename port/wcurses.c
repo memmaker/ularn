@@ -190,6 +190,12 @@ static void scroll_msgs(void)
     for (x = 0; x < COLS; x++) set(stdscr, LIVE, x, ' ');
 }
 
+static const char *rowfg[64]; /* stdscr rows: colour set by the port (wc_rowfg) */
+void wc_rowfg(WINDOW *w, int y, const char *css)
+{
+    if (w == stdscr && y >= 0 && y < 64) rowfg[y] = css && *css ? css : NULL;
+}
+
 /* ---- the game's output (io.c lflush) ---- */
 
 void wc_write(const char *buf, int n)
@@ -201,6 +207,7 @@ void wc_write(const char *buf, int n)
         if (ch >= 32) { waddch(w, (chtype)ch); continue; }
         switch (ch) {
         case CLEAR:
+            memset(rowfg, 0, sizeof rowfg);
             w->cury = w->curx = 0;
             clrtobot(w);
             mode = M_FULL;
@@ -315,8 +322,10 @@ static void pop_refresh(void)
     } else {
         untouch(pn[P_POP]);
     }
-    for (y = y0; y <= y1; y++)
+    for (y = y0; y <= y1; y++) {
         for (x = x0; x <= x1; x++) set(pn[P_POP], y - y0, x - x0, at(stdscr, y, x));
+        be_rowfg(P_POP, y - y0, rowfg[y] ? rowfg[y] : "");
+    }
     if (cy >= y0 && cy <= y1 && cx >= x0 && cx <= x1) be_cursor(P_POP, cy - y0, cx - x0);
 }
 

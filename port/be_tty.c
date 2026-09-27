@@ -11,7 +11,9 @@ void be_cursor(int p, int y, int x) { (void)p; (void)y; (void)x; }
 void be_prompt(const char *s) { (void)s; }
 void be_popup(int r, int c) { (void)r; (void)c; }
 void be_flush(void) {}
-void be_invfg(int y, const char *c) { (void)y; (void)c; }
+void be_invfg(int y, const char *c, int t) { (void)y; (void)c; (void)t; }
+void be_rowfg(int p, int y, const char *c) { (void)p; (void)y; (void)c; }
+int be_icons(void) { return 0; }
 void be_sleep(int ms) { (void)ms; }
 void be_sound(const char *e) { (void)e; }
 void be_beacon(const char *ev, const char *name, const char *killer, int depth, int score, int turns, int lvl)

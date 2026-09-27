@@ -71,7 +71,12 @@ void be_sleep(int ms);
 void be_sound(const char *event);       /* web: play a sound event */
 void be_beacon(const char *ev, const char *name, const char *killer, int depth, int score, int turns, int lvl); /* RVIP step 12 */
 void be_end(int saved);                  /* the game is over (or saved) */
-void be_invfg(int y, const char *css);   /* inventory row colour */
+void be_invfg(int y, const char *css, int tile); /* inventory row colour and icon tile (-1: none) */
+void wc_rowfg(WINDOW *w, int y, const char *css); /* a row's colour (stdscr; cleared by CLEAR) */
+void be_rowfg(int p, int y, const char *css); /* pop-up row colour */
+int be_icons(void);                      /* the frontend draws tiles (a tile set is loaded) */
+int wc_objtile(int o);                   /* panes.c: an object's tile, -1 = none */
+int wc_montile(int m);                   /* panes.c: a monster's tile, -1 = none */
 int tile_for(int y, int x, chtype ch);   /* panes.c: -1 = draw as text */
 void wc_status(WINDOW *);                /* panes.c: Status pane */
 void wc_inv(WINDOW *);                   /* panes.c: Inventory pane */

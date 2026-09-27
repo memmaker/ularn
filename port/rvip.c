@@ -256,21 +256,25 @@ static void load_cmds(void)
 
 /* Draws rows[] over the map (top left) under an optional title, row `cur`
  * highlighted, scrolled so it shows. Returns the first row shown. */
-static int draw_list(const char *title, char rows[][64], int n, int cur, int top)
+/* slot: the inventory slot per row, for the row's colour (NULL: none) */
+static int draw_list(const char *title, char rows[][64], int n, int cur, int top, const int *slot)
 {
     int i, x, w = title ? (int)strlen(title) : 0, shown = n < LIST_ROWS ? n : LIST_ROWS, y = 0;
     for (i = 0; i < n; i++)
         if ((int)strlen(rows[i]) > w) w = (int)strlen(rows[i]);
     if (cur < top) top = cur;
     if (cur >= top + shown) top = cur - shown + 1;
-    for (i = 0; i < MAXY; i++) /* the map area only: draws() restores it */
+    for (i = 0; i < MAXY; i++) { /* the map area only: draws() restores it */
         for (wmove(stdscr, i, 0), x = 0; x < MAXX; x++) waddch(stdscr, ' ');
+        wc_rowfg(stdscr, i, "");
+    }
     if (title) {
         wmove(stdscr, y++, 0);
         for (x = 0; title[x]; x++) waddch(stdscr, (unsigned char)title[x] | A_BOLD);
     }
     for (i = top; i < top + shown; i++) {
         chtype a = i == cur ? A_STANDOUT : 0;
+        if (slot) wc_rowfg(stdscr, y, wc_css(iven[slot[i]])); /* the Inventory pane's colours */
         wmove(stdscr, y++, 0);
         for (x = 0; x < w; x++) waddch(stdscr, (rows[i][x] && x < (int)strlen(rows[i]) ? (unsigned char)rows[i][x] : ' ') | a);
     }
@@ -286,6 +290,8 @@ static void open_list(void)
 
 static void close_list(void)
 {
+    int i;
+    for (i = 0; i < MAXY; i++) wc_rowfg(stdscr, i, "");
     draws(0, MAXX, 0, MAXY);
     wc_dungeon();
 }
@@ -320,7 +326,7 @@ int cmd_menu(void)
     for (i = 0; i < ncmds; i++) snprintf(rows[i], sizeof rows[i], " %c  %s ", cmds[i].key, cmds[i].text);
     open_list();
     for (;;) {
-        top = draw_list("Commands (key or cursor + Enter, Esc closes)", rows, ncmds, cur, top);
+        top = draw_list("Commands (key or cursor + Enter, Esc closes)", rows, ncmds, cur, top, NULL);
         k = getkey();
         if (k == ESC || k == '0' || k == LEFT) break;
         if ((c2 = move_cur(k, cur, ncmds)) >= 0) { cur = c2; continue; }
@@ -409,7 +415,7 @@ static int item_menu(int i)
     item_name(title, sizeof title, i);
     for (j = 0; j < n; j++) snprintf(rows[j], sizeof rows[j], " %c  %s ", a[j].key, a[j].name);
     for (;;) {
-        draw_list(title + 3, rows, n, cur, 0);
+        draw_list(title + 3, rows, n, cur, 0, NULL);
         k = getkey();
         if ((c2 = move_cur(k, cur, n)) >= 0) cur = c2;
         else if (k == PAD5 || k == RIGHT || k == '\r' || k == '\n' || k == ' ') return a[cur].key;
@@ -439,7 +445,7 @@ static int inventory_browse(void)
             return 0;
         }
         if (cur >= n) cur = n - 1;
-        top = draw_list("Inventory: letter uses, Shift drops, Ctrl examines, Enter menu", rows, n, cur, top);
+        top = draw_list("Inventory: letter uses, Shift drops, Ctrl examines, Enter menu", rows, n, cur, top, slot);
         if (wc_click) { k = 0x200 | wc_click; wc_click = 0; } /* clicked at the prompt */
         else { clicks = 1; k = getkey(); clicks = 0; }
         if (k & 0x200) { /* Inventory row r = the r-th item carried (panes.c wc_inv()) */
@@ -504,7 +510,7 @@ int rvip_whatitem(const char *verb)
     if (n) title[0] = (char)(title[0] - 'a' + 'A');
     open_list();
     for (;;) {
-        top = draw_list(title, rows, n, cur, top);
+        top = draw_list(title, rows, n, cur, top, slot);
         k = getkey();
         if (n && (c2 = move_cur(k, cur, n)) >= 0) cur = c2;
         else if ((k == '\r' || k == '\n' || k == PAD5 || k == RIGHT) && n) { key = 'a' + slot[cur]; break; }
