@@ -96,7 +96,7 @@ int be_getkey(int at_cmd)
 
 int be_poll(void)
 {
-    emscripten_sleep(30); /* shows the step; the page's keys arrive */
+    emscripten_sleep(40); /* shows the step (RVIP-Finetuning: 40 ms); the page's keys arrive */
     return js_key(1);
 }
 

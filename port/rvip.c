@@ -1,7 +1,7 @@
 /* RVIP additions for Ularn (from ~/Games/larn/port/rvip.c), called from
  * parse() (main.c):
  *   ~        auto-explore: one step per turn over what the player knows
- *   < >      off the stairs: walk to the nearest known one, take it there;
+ *   < >      off the stairs: walk to the nearest known one (press again to take it);
  *            on stairs (or a shaft, elevator, the entrance): take it.
  *   Enter    floating menu of every command (Uhelp page 2)
  *   i        inventory with a cursor and item menus; actions run as the
@@ -48,7 +48,8 @@ static int stairs_at(char mode, int x, int y)
 {
     int o = item[x][y];
     if (!know[x][y]) return 0;
-    if (mode == '<') return o == OSTAIRSUP || (level == 1 && x == 33 && y == MAXY - 1);
+    /* level 1's exit leaves on the step onto it: walk to the cell above it */
+    if (mode == '<') return o == OSTAIRSUP || (level == 1 && x == 33 && y == MAXY - 2);
     return o == OSTAIRSDOWN || (level == 0 && o == OENTRANCE);
 }
 
@@ -162,9 +163,10 @@ static int auto_step(void)
         door_step = 1;
         auto_x = -1; /* a stuck door stays shut: try again */
     } else if (mode != '~' && stairs_at(mode, x, y)) {
-        /* level 1's exit puts you on the town's entrance: stay out */
-        wc_answer(item[x][y] == OENTRANCE ? 'g' : level == 1 && mode == '<' ? 'i' : mode == '<' ? 'u' : 'd');
-        auto_mode = 0; /* arrived: the answered prompt takes the stairs */
+        /* arrived: only walk there, the player takes them with the key again */
+        if (item[x][y] == OENTRANCE) wc_answer('i');
+        else if (item[x][y] == OSTAIRSUP || item[x][y] == OSTAIRSDOWN) wc_answer('s');
+        auto_mode = 0;
     }
     return dkey[d];
 }
@@ -241,11 +243,12 @@ static void load_cmds(void)
         for (j = 0; j < cn[i]; j++) {
             char *e = cell[i][j], *t = e + 1;
             if (!strncmp(e, "< >", 3)) {
-                add_cmd('<', "walk to the nearest known stairs up");
-                add_cmd('>', "walk to the nearest known stairs down");
+                add_cmd('<', "walk to the nearest known stairs up (again: take them)");
+                add_cmd('>', "walk to the nearest known stairs down (again: take them)");
                 continue;
             }
             if (*t != ' ') continue;
+            if (strchr("hjklyubnHJKLYUBN", *e)) continue; /* moves and runs: not menu material */
             while (*t == ' ') t++;
             add_cmd((unsigned char)*e, t);
         }
@@ -545,6 +548,8 @@ int rvip_command(int k)
         wc_answer(o == OSTAIRSDOWN ? 'd' : o == OVOLDOWN ? 'c' : 'g');
     else if (k == '<' && (o == OSTAIRSUP || o == OVOLUP || o == OELEVATORUP))
         wc_answer(o == OSTAIRSUP ? 'u' : 'c');
+    else if (k == '<' && level == 1 && playerx == 33 && playery == MAXY - 2)
+        return 'j'; /* next to level 1's exit: step out (the town's entrance asks next) */
     else
         return start((char)k);
     lookforobject(); /* the stairs' own prompt, answered */
