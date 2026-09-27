@@ -20,7 +20,7 @@ emcc -O2 -std=gnu89 -fcommon -DULARN_PORT -DLIBDIR='"/ularn"' -Iport -w \
 	-sFORCE_FILESYSTEM -lidbfs.js -sENVIRONMENT=web \
 	--preload-file web/stage@/ularn-data
 rm -rf web/stage
-cp web/index.html "$HOME/Games/rvip-tools/web/rvip-wm.js" "$HOME/Games/rvip-tools/web/rvip-sound.js" web/ularn.js web/tiles.png "$OUT/"
+cp web/index.html web/ularn.js web/tiles.png "$OUT/"
 # the in-page guide (from the desktop Docs, ~/Desktop/Games/Roguelikes/Docs)
 python3 web/make-help.py > "$OUT/help.html"
 # sound effects (events raised by SOUND() in the game) and the town music
