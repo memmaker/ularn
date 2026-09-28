@@ -248,26 +248,77 @@ void wc_overlay(void)
 
 static int pop_h, pop_w;
 
+/* Text panes go out as whole lines (RVIP W0 rules 5, 6): each changed row
+ * once, trimmed, with the row's colour and icon tile (wc_rowattr); and the
+ * rows in use (to the last non-blank row or the cursor), so the page shows
+ * no empty lines at the bottom. Inside a row: standout between \x01 and
+ * \x02, a cell colour other than the row's as a run "\x05#rrggbb" ... "\x06"
+ * ("\x05*#rrggbb": bold), so coloured and bold text keeps its look. */
+#define RMAX 128
+static const char *rcss[NPANES][RMAX];
+static int rtile[NPANES][RMAX], rows_sent[NPANES], cur_p = -1, cur_y;
+
+void wc_rowattr(int p, int y, const char *css, int tile)
+{
+    WINDOW *w = pn[p];
+    if (!css) css = "";
+    if (!w || y < 0 || y >= w->maxy || y >= RMAX) return;
+    if (rcss[p][y] && !strcmp(rcss[p][y], css) && rtile[p][y] == tile) return;
+    rcss[p][y] = css; rtile[p][y] = tile;
+    touch(w, y, 0);
+}
+
+static void cursor(int p, int y, int x) { cur_p = p; cur_y = y; be_cursor(p, y, x); }
+
+static int blank(chtype ch) { return (ch & A_CHARTEXT) == ' ' && !(ch & A_STANDOUT); }
+
+/* a cell's colour run: curses colours 0-7, +8 bold (as the map's palette in
+ * ularn.js); bold without a colour keeps the row's colour, bold weight */
+static const char *pal[16] = { "#000000", "#cd3131", "#0dbc79", "#e5e510", "#4c7eff", "#bc3fbc", "#11a8cd", "#d7d7d7",
+    "#666666", "#f14c4c", "#23d18b", "#f5f543", "#6ea0ff", "#d670d6", "#29b8db", "#ffffff" };
+static int run(chtype ch, const char *row, char *out)
+{
+    int bold = (ch & A_BOLD) != 0, col = ch & 0x800 ? (ch >> 8) & 7 : 0;
+    const char *css;
+    if (!col && !bold) return 0;
+    css = col ? pal[col + 8 * bold] : *row ? row : pal[15];
+    return sprintf(out, "\x05%s%s", bold ? "*" : "", css);
+}
+
 static void pflush(int i)
 {
     WINDOW *p = pn[i];
-    int y, x;
-    for (y = 0; p && y < p->maxy; y++) {
+    int y, x, used = 0;
+    if (!p) return;
+    for (y = 0; y < p->maxy; y++)
+        for (x = 0; x < p->maxx; x++)
+            if (!blank(p->c[y * p->maxx + x])) used = y + 1;
+    if (cur_p == i && cur_y >= used) used = cur_y + 1;
+    if (used != rows_sent[i]) be_rows(i, rows_sent[i] = used);
+    for (y = 0; y < p->maxy; y++) {
+        char buf[12 * 256 + 4], r[16], cr[16] = "";
+        const char *row = y < RMAX && rcss[i][y] ? rcss[i][y] : "";
+        int n = 0, so = 0, end = p->maxx;
         if (p->first[y] < 0) continue;
-        for (x = p->first[y]; x <= p->last[y]; x++) be_put(i, y, x, p->c[y * p->maxx + x], -1);
         p->first[y] = p->last[y] = -1;
-    }
-    /* text panes are sent trimmed (RVIP W0): the cells in use, no blank
-     * columns after the text and no empty rows below it */
-    if (p && i != P_POP) {
-        static int ext_c[NPANES], ext_r[NPANES];
-        int cols = 0, rows = 0;
-        for (y = 0; y < p->maxy; y++)
-            for (x = 0; x < p->maxx; x++) {
-                chtype ch = p->c[y * p->maxx + x];
-                if ((ch & A_CHARTEXT) > ' ' || (ch & A_STANDOUT)) { if (x + 1 > cols) cols = x + 1; rows = y + 1; }
+        while (end > 0 && blank(p->c[y * p->maxx + end - 1])) end--;
+        for (x = 0; x < end && x < 256; x++) {
+            chtype ch = p->c[y * p->maxx + x];
+            int c = ch & A_CHARTEXT, s = (ch & A_STANDOUT) != 0;
+            r[run(ch, row, r)] = 0;
+            if (c == ' ' && !s) strcpy(r, cr);       /* a blank doesn't break a run */
+            if (s != so || strcmp(r, cr)) {
+                if (*cr) buf[n++] = 6;
+                if (s != so) buf[n++] = (so = s) ? 1 : 2;
+                n += sprintf(buf + n, "%s", r);
+                strcpy(cr, r);
             }
-        if (cols != ext_c[i] || rows != ext_r[i]) { ext_c[i] = cols; ext_r[i] = rows; be_extent(i, cols ? cols : 1, rows ? rows : 1); }
+            buf[n++] = c < 32 || c > 126 ? ' ' : c;
+        }
+        if (*cr) buf[n++] = 6;
+        if (so) buf[n++] = 2;
+        buf[n] = 0;
+        be_line(i, y, buf, row, y < RMAX && rcss[i][y] ? rtile[i][y] : -1);
     }
 }
 
@@ -331,14 +382,16 @@ static void pop_refresh(void)
         be_popup(pop_h, pop_w);
         delwin(pn[P_POP]);
         pn[P_POP] = newwin(pop_h, pop_w, 0, 0);
+        memset(rcss[P_POP], 0, sizeof rcss[P_POP]);
+        rows_sent[P_POP] = 0;
     } else {
         untouch(pn[P_POP]);
     }
     for (y = y0; y <= y1; y++) {
         for (x = x0; x <= x1; x++) set(pn[P_POP], y - y0, x - x0, at(stdscr, y, x));
-        be_rowfg(P_POP, y - y0, rowfg[y] ? rowfg[y] : "");
+        wc_rowattr(P_POP, y - y0, rowfg[y], -1);
     }
-    if (cy >= y0 && cy <= y1 && cx >= x0 && cx <= x1) be_cursor(P_POP, cy - y0, cx - x0);
+    if (cy >= y0 && cy <= y1 && cx >= x0 && cx <= x1) cursor(P_POP, cy - y0, cx - x0);
 }
 
 static void dump(FILE *f, const char *name, WINDOW *p)
@@ -356,7 +409,7 @@ int wrefresh(WINDOW *w)
     int cy = stdscr->cury, cx = stdscr->curx, i;
     const char *d;
     if (w != stdscr) return OK;
-    be_cursor(-1, 0, 0);
+    cursor(-1, 0, 0);
     if (mode != M_FULL) msg_refresh();
     if (mode == M_DUNGEON) close_popup();
     else pop_refresh();
@@ -364,8 +417,8 @@ int wrefresh(WINDOW *w)
         if (mode == M_DUNGEON) map_refresh();
         wc_status(pn[P_STATUS]);
         wc_inv(pn[P_INV]);
-        if (cy == LIVE) be_cursor(P_MSG, nhist, cx);
-        else if (mode == M_DUNGEON && cy < MAP_H && cx < MAP_W) be_cursor(P_MAP, cy, cx); /* the player */
+        if (cy == LIVE) cursor(P_MSG, nhist, cx);
+        else if (mode == M_DUNGEON && cy < MAP_H && cx < MAP_W) cursor(P_MAP, cy, cx); /* the player */
     }
     untouch(stdscr);
     for (i = P_STATUS; i < NPANES; i++)

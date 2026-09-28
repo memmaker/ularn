@@ -380,3 +380,14 @@ RogueBasin/web, else rules of thumb + README.spoilers. Cheats: wizard mode `=` (
   `…ev=quit&name=Webtest&depth=0&score=0&turns=4&lvl=1&id=…&at=…`; beacon blocked (503) → URL in
   `rvip-outbox`; unblocked, `RvipWM.flush()` → same URL sent, outbox `[]`. IDBFS `/ularn` deleted.
 - **Open problems:** browser death not run (native verified the same `died()` path).
+
+### W0 rule 6 (text windows as HTML) — 2026-09-28
+
+- Status, Messages, Inventory and the pop-up are HTML lines from the shim (`be_line`,
+  `be_rows`, `wc_rowattr`; `be_extent`/`be_invfg`/`be_rowfg` gone), as Larn 0ab3d3c. The
+  map is the only canvas. Cell colours survive as runs `"\x05#rrggbb"` … `"\x06"`, bold as
+  `"\x05*#rrggbb"` (palette in `wcurses.c` `run()`; bold without a colour keeps the row
+  colour): bold names, gold/HP/effect colours, worn/wielded items in their own colour, bold.
+- Inventory/Visible icons are CSS sprites sized in em (1.2em high, 8:16), so A+ grows them.
+- Inventory clicks: the clicked row's index in `#t-inv .body` (0x200|row, as before).
+- No native X11/terminal frontend here: `be_tty.c` ignores lines; `ULARN_DUMP` reads cells.

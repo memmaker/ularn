@@ -232,23 +232,25 @@ chtype wc_mapcell(int y, int x, chtype ch)
     return col ? ch | COLOR_PAIR(col) : ch;
 }
 
-/* Rows "a)   name" with a tile set (the frontend puts the icon on cols 2-4),
- * "a) ! name" in text mode (the item's own symbol) */
+/* Rows "a) name" with a tile set (the page puts the icon first), "a) ! name"
+ * in text mode (the item's own symbol); the row's colour and icon go with it
+ * (wc_rowattr), worn/wielded items are bold (a colour run, wcurses.c) */
 void wc_inv(WINDOW *w)
 {
     char b[160], n[160];
     int i, icons = be_icons();
     ln = 0;
+    wc_rowattr(P_INV, 0, "", -1);
     line(w, A_BOLD, "Inventory");
     for (i = 0; i < IVENSIZE; i++) {
         if (!iven[i]) continue;
         int t = wc_objtile(iven[i]);
         item_name(n, sizeof n, i);
-        if (icons && t >= 0) snprintf(b, sizeof b, "%.3s  %s", n, n + 3);
+        if (icons && t >= 0) snprintf(b, sizeof b, "%s", n);
         else snprintf(b, sizeof b, "%.3s%c %s", n, objnamelist[iven[i]], n + 3);
+        wc_rowattr(P_INV, ln, wc_css(iven[i]), icons ? t : -1);
         line(w, c[WIELD] == i || c[WEAR] == i || c[SHIELD] == i ? A_BOLD : 0, b);
-        be_invfg(ln - 1, wc_css(iven[i]), icons ? t : -1);
     }
-    for (i = ln; i < w->maxy; i++) be_invfg(i, "", -1);
+    for (i = ln; i < w->maxy; i++) wc_rowattr(P_INV, i, "", -1);
     while (ln < w->maxy) line(w, 0, "");
 }
