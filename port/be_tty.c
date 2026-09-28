@@ -32,3 +32,4 @@ int be_getkey(int at_cmd)
     if (k == EOF) { fprintf(stderr, "[end of keys]\n"); exit(0); }
     return k;
 }
+void be_extent(int p, int cols, int rows) { (void)p; (void)cols; (void)rows; }   /* web only */
