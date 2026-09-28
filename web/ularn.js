@@ -419,9 +419,8 @@
 		helpText: 'Press ? in the game for its own help.'
 	});
 
-	/* tile sets: the Amiga tiles or none (text); a per-browser preference */
+	/* tile sets: the Amiga tiles or none (text); kept in web-tiles (IndexedDB), never localStorage */
 	var TILESETS = [['tiles.png', 'Amiga'], [null, 'None']], tileset = 0;
-	try { tileset = localStorage.getItem('ularn-tiles') === 'text' ? 1 : 0; } catch (e) { }
 	function renderTileset() { var b = $('btn-tiles'); if (b) b.textContent = 'Tiles: ' + TILESETS[tileset][1]; }
 	function redrawTiles() {
 		[P_MAP, P_INV].forEach(function (p) { if (panes[p]) shape(p); });
@@ -432,7 +431,7 @@
 	}
 	function toggleTileset() {
 		tileset = (tileset + 1) % TILESETS.length;
-		try { localStorage.setItem('ularn-tiles', tileset ? 'text' : 'tiles'); } catch (e) { }
+		try { Module.FS.writeFile(DIR + '/web-tiles', TILESETS[tileset][1]); app.sync(); } catch (e) { }
 		renderTileset(); renderMapSel();
 		if (!TILESETS[tileset][0]) { tilesReady = false; redrawTiles(); return; }   /* text mode */
 		if (tiles.complete && tiles.naturalWidth) { tilesReady = true; redrawTiles(); }
@@ -485,6 +484,8 @@
 					try { FS.unlink(DIR + '/' + f); } catch (e) { }
 					FS.symlink(DATA + '/' + f, DIR + '/' + f);
 				});
+				try { if (FS.readFile(DIR + '/web-tiles', { encoding: 'utf8' }) === 'None') { tileset = 1; tilesReady = false; } } catch (e) { }
+				renderTileset();
 				Module.removeRunDependency('idbfs');
 			});
 		}],
