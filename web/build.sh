@@ -20,7 +20,6 @@ emcc -O2 -std=gnu89 -fcommon -DULARN_PORT -DLIBDIR='"/ularn"' -Iport -w \
 	-sFORCE_FILESYSTEM -lidbfs.js -sENVIRONMENT=web \
 	--preload-file web/stage@/ularn-data
 rm -rf web/stage
-(cd ~/Games/roguelikes-index/fonts 2>/dev/null && ls *.woff | sed "s/\.woff$//") | python3 -c "import json,sys; print(json.dumps(sys.stdin.read().split()))" > "$OUT/fonts.json"   # text fonts: the index page's fonts/
 cp web/index.html web/ularn.js web/tiles.png "$OUT/"
 # the in-page guide (from the desktop Docs, ~/Desktop/Games/Roguelikes/Docs)
 python3 web/make-help.py > "$OUT/help.html"
