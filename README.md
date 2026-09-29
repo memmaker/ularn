@@ -19,7 +19,7 @@ What this port adds (the game code in `src/` is nearly untouched):
 - **Inventory** `i`: cursor list with item menus; click an inventory row to
   open its menu.
 - **Tiles**: the Amiga Larn tile set, scaled nearest-neighbour.
-- **Sound** (off by default): Dubtrain effects and a town music loop.
+- **Sound** (off by default): effects synthesized for Ularn at build time; no music.
 - **Saves** live in the browser's IndexedDB (`S` saves and quits).
 
 Build: `sh web/build.sh` → `web/dist` (needs emcc, python3 + Pillow).
@@ -28,5 +28,4 @@ Deploy: `sh web/deploy.sh`. Native test build: `make -C port`
 
 Credits: Ularn by Phil Cordier, Josh Brandt, Josh Bressers and contributors,
 GPL-2 (`LICENSE`); Larn by Noah Morgan. Amiga Larn tiles from larn.org
-(primeau), MIT. Sound effects: Dubtrain sound pack; town music from Larn's
-heavenAndHell port.
+(primeau), MIT. Sound effects: synthesized for this port (`web/mksounds.py`).

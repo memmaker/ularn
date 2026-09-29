@@ -178,7 +178,7 @@
 		return { v: 1, tile: tile, auto: true,
 			split: { bottom: (mapH + GUT / 2) / H, side: (W - sideW - GUT / 2) / W,
 				stat: (13 * Math.round(font * 1.3) + TITLE_H + BORDER + GUT / 2) / H },
-			audio: { sound: false, music: false } };
+			audio: { sound: false } };
 	}
 
 	function loadLayout() {
@@ -195,7 +195,7 @@
 				if (s.font && d.wm && !d.wm.fs) d.wm.fs = s.font;   /* old layout: sizes were L.font */
 				if (typeof s.face === 'string') d.face = s.face;
 				if (typeof s.mapFace === 'string') d.mapFace = s.mapFace;
-				if (s.audio) d.audio = { sound: s.audio.sound === true, music: s.audio.music === true };
+				if (s.audio) d.audio = { sound: s.audio.sound === true };
 			}
 		} catch (err) { /* nothing saved yet */ }
 		L = d;
@@ -273,9 +273,9 @@
 	}
 
 	/* ---------- sound ---------- */
-	/* events come from the game (SOUND() -> port/be_web.c), named like the Dubtrain
-	 * Angband Sound Pack's (web/sounds.py copies the samples); rvip-sound.js plays them */
-	var audio = { cfg: {}, town: false, el: null, played: 0 };
+	/* events come from the game (SOUND() -> port/be_web.c); web/mksounds.py synthesizes
+	 * one wav per event at build time; rvip-sound.js plays them. Ularn has no music. */
+	var audio = { cfg: {}, played: 0 };
 	fetch('sound/sounds.json').then(function (r) { return r.json(); }).then(function (c) { audio.cfg = c; }).catch(function () { });
 
 	function play(name) {
@@ -284,23 +284,12 @@
 		audio.played++;                          /* testing */
 		RVIPSound.play([files[Math.floor(Math.random() * files.length)].replace(/\.wav$/, '')], 0.6);
 	}
-	function updateMusic() {
-		var on = L && L.audio.music && audio.town && app.running;
-		if (on && !audio.el) {
-			audio.el = new Audio('music/new_town.ogg');
-			audio.el.loop = true; audio.el.volume = 0.4;
-		}
-		if (!audio.el) return;
-		if (on) audio.el.play().catch(function () { }); else audio.el.pause();
-	}
 	function toggleAudio(k) {
 		L.audio[k] = !L.audio[k];
-		renderAudio(); updateMusic(); saveLayout();
+		renderAudio(); saveLayout();
 	}
 	function renderAudio() {
-		var a = L ? L.audio : { sound: false, music: false };
-		$('chk-sound').checked = a.sound;
-		$('chk-music').checked = a.music;
+		$('chk-sound').checked = !!(L && L.audio.sound);
 	}
 
 	/* ---------- called by the game (port/be_web.c) ---------- */
@@ -347,7 +336,6 @@
 			if (ln.lastCur && panes[ln.lastCur.p]) draw(ln.lastCur.p, ln.lastCur.y, ln.lastCur.x);
 			drawCursor();
 			ln.lastCur = cur.p >= 0 ? { p: cur.p, y: cur.y, x: cur.x } : null;
-			if ((level === 0) !== audio.town) { audio.town = level === 0; updateMusic(); }
 		},
 		icons: function () { return tilesReady ? 1 : 0; },
 		vis: function (s) { RvipWM.visible(document.querySelector('#t-vis .body'), s, visIcon); },
@@ -379,7 +367,6 @@
 		},
 		end: function (saved) {
 			app.running = false;
-			updateMusic();
 			/* died or quit: the game showed its last screen and waited for a key */
 			if (!saved) { app.sync(function () { location.reload(); }); return; }
 			app.sync(function () {
@@ -525,7 +512,6 @@
 		$('btn-tiles').onclick = toggleTileset;
 		renderTileset();
 		$('chk-sound').onchange = function () { toggleAudio('sound'); };
-		$('chk-music').onchange = function () { toggleAudio('music'); };
 		RvipWM.dropdown($('btn-audio'), $('menu-audio'));
 		RvipWM.dropdown($('btn-file'), $('menu-file'));
 		fetch('fonts.json').then(function (r) { return r.json(); }).then(function (list) {

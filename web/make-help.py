@@ -28,7 +28,7 @@ SAVING = '''<ul>
 <li>When your character dies (or you quit with <kbd>Q</kbd>) the game is over and the save is deleted; the next start begins a new character.</li>
 <li>Each browser keeps <strong>one game</strong>. <em>New game</em> deletes it and starts over.</li>
 <li><em>Export save</em> downloads the save file; <em>Import save</em> loads one. Use them for a backup or to move a game to another browser or computer (any Ularn 1.7.0 reads the same file).</li>
-<li>Your name (<code>.Ularnopts</code>), the window layout, zoom, the sound/music switches and the high scores are stored in the same browser storage.</li>
+<li>Your name (<code>.Ularnopts</code>), the window layout, zoom, the sound switch and the high scores are stored in the same browser storage.</li>
 <li>Private/incognito windows and "clear site data" delete the stored game. Export first if it matters.</li>
 </ul>'''
 
@@ -36,7 +36,7 @@ WEB = '''<ul>
 <li><strong>Windows:</strong> the tiled map with Messages (with history) below it; Status, Inventory and Visible (monsters next to you, items on the map) on the right. Click an Inventory row for that item's actions. Shops, help, lists and menus pop up over the map.</li>
 <li><strong>Resize windows</strong> by dragging the gaps between them; a text window's contents shrink to fit when it is too small. <em>Reset windows</em> puts everything back.</li>
 <li><strong>Zoom:</strong> <em>A−</em> / <em>A+</em> on the Map title bar (shown on hover) change the size of the map tiles; <em>Tiles</em> switches the map between tiles and text. The map does not have to fit: when it is bigger than its window it scrolls to keep you in view. Hover over a text window's title to show its <em>A−</em> / <em>A+</em> buttons.</li>
-<li><strong>Sound</strong> and <strong>Music</strong> are off until you switch them on in the top bar. Sound effects are from the Dubtrain Angband Sound Pack; music plays in town.</li>
+<li><strong>Sound effects</strong> are off until you switch them on under <em>Audio ▾</em>. Ularn never had sounds, so these short effects were synthesized for this port; there is no music.</li>
 <li><strong>Keys:</strong> the arrow keys, the numeric keypad or <kbd>hjklyubn</kbd> move you; the capital letters run.</li>
 <li>Browsers keep a few shortcuts for themselves (<kbd>Ctrl+W</kbd>, <kbd>Ctrl+T</kbd>, <kbd>Ctrl+N</kbd>, and <kbd>Cmd</kbd> shortcuts on a Mac), so those never reach the game.</li>
 <li>If the game ever crashes, a message appears at the top; reload the page to continue from the last autosave.</li>
@@ -93,5 +93,5 @@ parts.append('<h2 id="h-version">About this version</h2><ul>'
              '<li>Our changes (port, auto-explore, command menu, inventory, web build): '
              '<a href="https://github.com/memmaker/ularn/compare/ef42184...master" target="_blank" rel="noopener">memmaker/ularn</a></li>'
              '<li>Tiles: the Amiga Larn set from <a href="https://larn.org/" target="_blank" rel="noopener">larn.org</a> (github.com/primeau/Larn, MIT).</li>'
-             '<li>Sound effects: the Dubtrain Angband Sound Pack.</li></ul>')
+             '<li>Sound effects: synthesized for this port (<code>web/mksounds.py</code>).</li></ul>')
 print('\n'.join(parts))

@@ -15,7 +15,7 @@ https://github.com/memmaker/ularn (remote `memmaker`, branch `master`) · shrine
 - Web: `sh web/build.sh` → `web/dist` (emcc, `-DULARN_PORT -DLIBDIR='"/ularn"'`, Asyncify, IDBFS;
   data Umaps/Ufortune/Uhelp preloaded at `/ularn-data`). Runs `port/mktiles.py` if `web/tiles.png`
   is missing, `web/make-help.py` (Docs entry `ularn.html` in `~/Desktop/Games/Roguelikes/Docs`),
-  `web/sounds.py`. The page loads `../rvip-wm.js`, `../rvip-app.js`, `../rvip-sound.js`.
+  `web/mksounds.py`. The page loads `../rvip-wm.js`, `../rvip-app.js`, `../rvip-sound.js`.
 - `sh web/deploy.sh` (refuses a dirty or unpushed tree).
 - Native headless test: `make -C port` → `port/ularn-test` (keys from stdin; run in a dir with the
   data files, `HOME=` that dir); `make -C port asan`; `ULARN_DUMP=<file>` dumps panes; beacons
@@ -49,7 +49,10 @@ https://github.com/memmaker/ularn (remote `memmaker`, branch `master`) · shrine
 - Saves: IDBFS `/ularn` = HOME, LIBDIR, cwd (`Ularn.sav`, `Uscore`, `.Ularnopts`,
   `web-layout.json`). Autosave at the first command prompt, every 2 min, on hide; `be_end()`
   removes the save unless saved with S.
-- Sound: `SOUND(e)` (`src/header.h`) → `be_sound()`; Dubtrain samples; town music `new_town.ogg`.
+- Sound: `SOUND(e)` (`src/header.h`) → `be_sound()`; `web/mksounds.py` synthesizes one wav per
+  event at build time (triangle tones made for Ularn). No music.
+- Stage 6 sound search (2026-09-29): Ularn never shipped sounds or music (upstream, larn.org,
+  the 1.6 Amiga/Windows release); no fan pack found. Nothing to use.
 - Beacon: `died()` (`src/scores.c`) before any `exit()`; every end except S. `ev` win (263),
   quit (300/256), else death; score = gold + bank. Wizard runs are sent too. Killer art:
   `ularn()` in `roguelikes-index/killers/make.py`. Browser death not run (native path verified).

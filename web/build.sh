@@ -24,8 +24,6 @@ rm -rf web/stage
 cp web/index.html web/ularn.js web/tiles.png "$OUT/"
 # the in-page guide (from the desktop Docs, ~/Desktop/Games/Roguelikes/Docs)
 python3 web/make-help.py > "$OUT/help.html"
-# sound effects (events raised by SOUND() in the game) and the town music
-python3 web/sounds.py "$OUT/sound"
-mkdir -p "$OUT/music"
-cp ~/Projects/heavenAndHell/files/mods/heavenandhell/music/new_town.ogg "$OUT/music/"
+# sound effects, synthesized for the events raised by SOUND() in the game
+python3 web/mksounds.py "$OUT/sound"
 ls -la "$OUT"
